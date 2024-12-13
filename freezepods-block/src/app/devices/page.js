@@ -1,7 +1,7 @@
 import Navigation from "../components/Navigation";
 import ConnectedDevices from "../components/ConnectedDevices";
 
-export default function About() {
+export default function Devices() {
   return (
     <div className="welcome-content"> 
       <Navigation />
