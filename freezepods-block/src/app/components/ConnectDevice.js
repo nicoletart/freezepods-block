@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import { MicrobitUuid } from "./MicrobitUuid.js"; 
+import React from "react";
+import { MicrobitUuid } from "./MicrobitUuid.js";
 
-export default function ConnectDevice({ setDevices }) {
+export default function ConnectDevice({ addDevice }) {   
   const connect = async () => {
     if (!navigator.bluetooth) {
       console.error("Bluetooth not available in this browser or computer.");
@@ -37,9 +37,10 @@ export default function ConnectDevice({ setDevices }) {
         alert("Could not connect to the Micro:bit");
         return;
       }
+
       device.addEventListener("gattserverdisconnected", () => {
         console.log(`${device.name} disconnected`);
-        setDevices((prevDevices) =>
+        addDevice((prevDevices) =>
           prevDevices.filter((d) => d.device.id !== device.id)
         );
       });
@@ -51,7 +52,8 @@ export default function ConnectDevice({ setDevices }) {
         console.log(service.uuid);
       });
 
-      setDevices((prevDevices) => [...prevDevices, { device, server }]);
+      
+      addDevice({ device, server });
     } catch (error) {
       if (error.name === "NotFoundError") {
         console.warn("No devices found", error);
@@ -66,8 +68,6 @@ export default function ConnectDevice({ setDevices }) {
     }
   };
 
-
-  return <button onClick={connect}>Connect to Micro:bit</button>
-
-  ;
+  return <button onClick={connect}>Connect to Micro:bit</button>;
 }
+
