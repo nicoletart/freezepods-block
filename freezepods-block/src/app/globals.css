@@ -3,19 +3,72 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
+  --background: #282c34;
   --foreground: #171717;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #282c34;
+    --foreground: #000000;
   }
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande",
+    "Lucida Sans", Arial, sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  padding-top: 5rem;
+  color: white;
+}
+
+.navigation {
+  background-color: #4c5463;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  font-size: 20px;
+
+  padding: 10px;
+  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+.navigation a:hover {
+  text-decoration: underline;
+}
+
+.welcome-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 5rem);
+  text-align: center;
+}
+
+button {
+  margin-top: 10px;
+  padding: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  background-color: rgb(100, 108, 109);
+  border-radius: 10px;
+  border: 2px solid white;
+}
+
+button:hover {
+  background-color: rgb(23, 26, 27);
 }
