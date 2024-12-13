@@ -3,6 +3,7 @@
 import React from "react";
 import { useDevices } from "../context/ConnectedDevicesContext";
 import ConnectDevice from "./ConnectDevice";
+import AnimatedButton from "./AnimatedButton";
 
 export default function ConnectedDevices() {
   const { devices, loading, addDevice, resetDevices } = useDevices();
@@ -19,9 +20,7 @@ export default function ConnectedDevices() {
         {loading ? (
           <p>Loading devices...</p>
         ) : devices.length === 0 ? (
-          <p>No devices connected
-            
-          </p>
+          <p>No devices connected</p>
         ) : (
           <ul>
             {devices.map(({ device }, index) => (
@@ -33,7 +32,7 @@ export default function ConnectedDevices() {
 
       <div>
         <h2>Reset Devices</h2>
-        <button onClick={resetDevices}>Reset Devices</button>
+        <AnimatedButton onClick={resetDevices}>Reset Devices</AnimatedButton>
       </div>
     </div>
   );

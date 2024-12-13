@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import * as Blockly from "blockly";
 import "blockly/blocks";
 import { javascriptGenerator } from "blockly/javascript";
+import AnimatedButton from "./AnimatedButton";
 
 export default function BlocklyComponent() {
   const blocklyDiv = useRef(null); // Blockly workspace container
@@ -81,19 +82,13 @@ export default function BlocklyComponent() {
         }}
       ></div>
 
-      <div style={{ display: "flex", gap: "10px" }}>
-        <button
-          onClick={handleGenerateCode}
-          style={{ padding: "10px 20px", fontSize: "16px" }}
-        >
+      <div style={{ display: "flex", gap: "20px" }}>
+        <AnimatedButton onClick={handleGenerateCode}>
           Generate Code
-        </button>
-        <button
-          onClick={resetWorkspace}
-          style={{ padding: "10px 20px", fontSize: "16px" }}
-        >
+        </AnimatedButton>
+        <AnimatedButton onClick={resetWorkspace}>
           Clear Workspace
-        </button>
+        </AnimatedButton>
       </div>
 
       {generatedCode && (

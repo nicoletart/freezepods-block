@@ -1,7 +1,8 @@
 import React from "react";
 import { MicrobitUuid } from "./MicrobitUuid.js";
+import AnimatedButton from "./AnimatedButton.js";
 
-export default function ConnectDevice({ addDevice }) {   
+export default function ConnectDevice({ addDevice }) {
   const connect = async () => {
     if (!navigator.bluetooth) {
       console.error("Bluetooth not available in this browser or computer.");
@@ -52,7 +53,6 @@ export default function ConnectDevice({ addDevice }) {
         console.log(service.uuid);
       });
 
-      
       addDevice({ device, server });
     } catch (error) {
       if (error.name === "NotFoundError") {
@@ -68,6 +68,7 @@ export default function ConnectDevice({ addDevice }) {
     }
   };
 
-  return <button onClick={connect}>Connect to Micro:bit</button>;
+  return (
+    <AnimatedButton onClick={connect}> Connect to Micro:bit </AnimatedButton>
+  );
 }
-
