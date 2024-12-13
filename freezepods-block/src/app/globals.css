@@ -32,6 +32,10 @@ body {
   color: white;
 }
 
+h2{
+  font-weight: bold;
+}
+
 .navigation {
   background-color: #4c5463;
   display: flex;
@@ -71,4 +75,9 @@ button {
 
 button:hover {
   background-color: rgb(23, 26, 27);
+}
+
+li{
+  border: 2px solid white;
+  margin: 10px;
 }
