@@ -1,8 +1,10 @@
 import React from "react";
 import { MicrobitUuid } from "./MicrobitUuid.js";
 import AnimatedButton from "./AnimatedButton.js";
+import { useDevices } from "../context/ConnectedDevicesContext.js";
 
-export default function ConnectDevice({ addDevice }) {
+export default function ConnectDevice() {
+  const { devices, addDevice } = useDevices();
   const connect = async () => {
     if (!navigator.bluetooth) {
       console.error("Bluetooth not available in this browser or computer.");
@@ -29,6 +31,12 @@ export default function ConnectDevice({ addDevice }) {
       if (!device) {
         console.log("No device selected or user canceled.");
         alert("Canceled action. Please press Connect to try again");
+        return;
+      }
+
+      if (devices.some((d) => d.device.id === device.id)) {
+        console.log(`${device.name} is already connected:`);
+        alert(`${device.name} is already connected`);
         return;
       }
 

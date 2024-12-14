@@ -32,7 +32,7 @@ body {
   color: white;
 }
 
-h2{
+h2 {
   font-weight: bold;
   font-size: 20px;
 }
@@ -78,7 +78,45 @@ button:hover {
   background-color: rgb(23, 26, 27);
 }
 
-li{
+li {
   border: 2px solid white;
   margin: 10px;
+}
+
+.game-link-container {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip {
+  position: absolute;
+  background-color: white;
+  color: black;
+  padding: 10px;
+  border-radius: 10px;
+  border: 2px solid black;
+  font-size: 10px;
+  white-space: nowrap;
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  word-wrap: break-word;
+}
+
+.game-link-container:hover .tooltip {
+  display: block;
+}
+
+.game-link.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* Screen Changes */
+
+@media (max-width: 925px) {
+  .tooltip {
+    white-space: pre-wrap;
+  }
 }

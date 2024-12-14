@@ -6,13 +6,13 @@ import ConnectDevice from "./ConnectDevice";
 import AnimatedButton from "./AnimatedButton";
 
 export default function ConnectedDevices() {
-  const { devices, loading, addDevice, resetDevices } = useDevices();
+  const { devices, loading, resetDevices } = useDevices();
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "30px" }}>
       <div>
         <h2>Connect to New Micro:bit</h2>
-        <ConnectDevice addDevice={addDevice} />
+        <ConnectDevice />
       </div>
 
       <div>
