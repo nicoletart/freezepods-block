@@ -17,9 +17,8 @@ export default function Game() {
         </div>
       </div>
       <div>
-        <h2>Game Settings</h2>
-        <AnimatedButton href="/blockly-workspace" className="blockly-button">
-          Blockly Workspace
+        <AnimatedButton href="/game-settings" className="blockly-button">
+          Game Settings
         </AnimatedButton>
       </div>
     </div>
