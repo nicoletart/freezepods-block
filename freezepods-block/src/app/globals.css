@@ -55,6 +55,20 @@ h2 {
   text-decoration: underline;
 }
 
+.page-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+}
+
+.game-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(200px, 1fr));
+  justify-items: center;
+  align-items: center;
+}
+
 .welcome-content {
   display: flex;
   flex-direction: column;
@@ -64,8 +78,7 @@ h2 {
   text-align: center;
 }
 
-button {
-  margin-top: 10px;
+.animated-button {
   padding: 5px;
   font-size: 14px;
   cursor: pointer;
@@ -74,8 +87,12 @@ button {
   border: 2px solid white;
 }
 
-button:hover {
-  background-color: rgb(23, 26, 27);
+.animated-button:hover {
+  background-color: rgb(63, 65, 71);
+}
+
+.animated-button.blockly-button {
+  background-color: rgb(77, 105, 187);
 }
 
 li {
@@ -118,5 +135,12 @@ li {
 @media (max-width: 925px) {
   .tooltip {
     white-space: pre-wrap;
+  }
+}
+
+@media (max-width: 650px) {
+  /* For smaller screens, force a single column */
+  .game-buttons {
+    grid-template-columns: 1fr;
   }
 }

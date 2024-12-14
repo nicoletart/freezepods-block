@@ -9,7 +9,7 @@ export default function ConnectedDevices() {
   const { devices, loading, resetDevices } = useDevices();
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "30px" }}>
+    <div className="page-layout">
       <div>
         <h2>Connect to New Micro:bit</h2>
         <ConnectDevice />
