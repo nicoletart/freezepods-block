@@ -10,14 +10,14 @@ export default function Game() {
         <h2>Choose Your Game</h2>
 
         <div className="game-buttons">
-          <AnimatedButton href="/button-game">Button Game</AnimatedButton>
-          <AnimatedButton href="/light-sensor-game">
+          <AnimatedButton href="/game/button-game">Button Game</AnimatedButton>
+          <AnimatedButton href="/game/light-sensor-game">
             Light Sensor Game
           </AnimatedButton>
         </div>
       </div>
       <div>
-        <AnimatedButton href="/game-settings" className="blockly-button">
+        <AnimatedButton href="/game/game-settings" className="blockly-button">
           Game Settings
         </AnimatedButton>
       </div>

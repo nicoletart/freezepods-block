@@ -130,6 +130,14 @@ li {
   pointer-events: none;
 }
 
+.animated-button.back-button {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  padding: 5px 10px;
+  background-color: rgb(77, 105, 187);
+}
+
 /* Screen Changes */
 
 @media (max-width: 925px) {
