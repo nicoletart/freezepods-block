@@ -23,9 +23,14 @@ export default function ConnectedDevices() {
           <p>No devices connected</p>
         ) : (
           <ul>
-            {devices.map(({ device }, index) => (
-              <li key={device.id || index}>{device.name}</li>
-            ))}
+            {devices.map(({ device }, index) => {
+              console.log("device:", device);
+              // Check if the device object is valid
+              if (!device || !device.name) {
+                return null; // Skip rendering this device if it's invalid
+              }
+              return <li key={device.id || index}>{device.name}</li>;
+            })}
           </ul>
         )}
       </div>

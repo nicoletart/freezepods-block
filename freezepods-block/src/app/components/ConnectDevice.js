@@ -5,6 +5,7 @@ import { useDevices } from "../context/ConnectedDevicesContext.js";
 
 export default function ConnectDevice() {
   const { devices, addDevice } = useDevices();
+
   const connect = async () => {
     if (!navigator.bluetooth) {
       console.error("Bluetooth not available in this browser or computer.");
@@ -12,7 +13,6 @@ export default function ConnectDevice() {
       return;
     }
 
-    let server;
     try {
       const device = await navigator.bluetooth.requestDevice({
         filters: [{ namePrefix: "BBC micro:bit" }],
@@ -29,24 +29,23 @@ export default function ConnectDevice() {
       });
 
       if (!device) {
-        console.log("No device selected or user canceled.");
         alert("Canceled action. Please press Connect to try again");
         return;
       }
 
       if (devices.some((d) => d.device.id === device.id)) {
-        console.log(`${device.name} is already connected:`);
         alert(`${device.name} is already connected`);
         return;
       }
 
-      server = await device.gatt.connect();
+      const server = await device.gatt.connect();
+
       if (!server) {
-        console.error("Server not available");
         alert("Could not connect to the Micro:bit");
         return;
       }
 
+      // Handle disconnection
       device.addEventListener("gattserverdisconnected", () => {
         console.log(`${device.name} disconnected`);
         addDevice((prevDevices) =>
@@ -56,12 +55,21 @@ export default function ConnectDevice() {
 
       console.log("Connected:", device.name);
 
+      // Fetch and log all services
       const services = await server.getPrimaryServices();
-      services.forEach((service) => {
-        console.log(service.uuid);
+      console.log("Discovered services:");
+      services.forEach((service, index) => {
+        console.log(`Service ${index}:`, service.uuid);
       });
 
-      addDevice({ device, server });
+      // Add device to the context with its services and server
+      console.log("DD:", device);
+      addDevice({
+        id: device.id,
+        name: device.name,
+        server: server,
+        services: services,
+      });
     } catch (error) {
       if (error.name === "NotFoundError") {
         console.warn("No devices found", error);

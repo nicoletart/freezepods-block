@@ -1,4 +1,3 @@
-
 export const MicrobitUuid = {
   genericAccess: ["00001800-0000-1000-8000-00805f9b34fb", "Generic Access"],
   genericAttribute: [
