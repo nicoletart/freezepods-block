@@ -45,7 +45,6 @@ export default function ConnectDevice() {
         return;
       }
 
-      // Handle disconnection
       device.addEventListener("gattserverdisconnected", () => {
         console.log(`${device.name} disconnected`);
         addDevice((prevDevices) =>
@@ -55,20 +54,18 @@ export default function ConnectDevice() {
 
       console.log("Connected:", device.name);
 
-      // Fetch and log all services
       const services = await server.getPrimaryServices();
       console.log("Discovered services:");
       services.forEach((service, index) => {
         console.log(`Service ${index}:`, service.uuid);
       });
 
-      // Add device to the context with its services and server
       console.log("DD:", device);
       addDevice({
         id: device.id,
         name: device.name,
         server: server,
-        services: services.map((service) => service.uuid)
+        services: services.map((service) => service.uuid),
       });
     } catch (error) {
       if (error.name === "NotFoundError") {

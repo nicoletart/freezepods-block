@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState, useRef } from "react";
 import { useDevices } from "../context/ConnectedDevicesContext";
-import LightDevice from "../components/LightDevice";
 import { MicrobitUuid } from "../components/MicrobitUuid";
 import ReconnectButton from "../components/ReconnectButton";
 import AnimatedButton from "../components/AnimatedButton";
-import ConnectedDevices from "../components/ConnectedDevices";
+import ConnectedDevicesList from "../components/ConnectedDevicesList";
+import { lightUpDevice, turnOffDevice } from "../components/LightDevice";
 
 export default function GamePage({ gameType }) {
   const { devices, reconnectDevices, ready } = useDevices();
@@ -20,6 +20,12 @@ export default function GamePage({ gameType }) {
     server: null,
     services: null,
   });
+
+  const [previousDevice, setPreviousDevice] = useState(null);
+  const prevCharacteristicRef = useRef(null);
+
+  let index = 0;
+
   const {
     score,
     timer,
@@ -32,57 +38,104 @@ export default function GamePage({ gameType }) {
   } = gameState;
 
   const getRandomDevice = (devices) => {
-    if (!devices || devices.length === 0) return null;
-    return devices[Math.floor(Math.random() * devices.length)];
+    if (index === 0) {
+      index = 1;
+      return devices[1];
+    } else {
+      index = 0;
+      return devices[0];
+    }
+  };
+
+  useEffect(() => {
+    console.log("Previous Characteristic:", prevCharacteristicRef.current);
+  }, [prevCharacteristicRef.current]);
+
+  const stopNotifications = async () => {
+    if (prevCharacteristicRef.current) {
+      console.log(
+        "Stopping notifications for characteristic:",
+        prevCharacteristicRef.current.uuid
+      );
+      await prevCharacteristicRef.current.stopNotifications();
+      prevCharacteristicRef.current.removeEventListener(
+        "characteristicvaluechanged",
+        handleButtonStateChanged
+      );
+    }
   };
 
   const enableNotifications = async (characteristic, handler) => {
+    console.log("Enabling notifications for:", characteristic);
     try {
+      if (!characteristic.properties.notify) {
+        console.error(
+          `Characteristic ${characteristic.uuid} does not support notifications.`
+        );
+        return;
+      }
       await characteristic.startNotifications();
-      characteristic.addEventListener(`${characteristic}valuechanged`, handler);
+      characteristic.addEventListener("characteristicvaluechanged", handler);
       console.log("Notifications enabled for:", characteristic.uuid);
     } catch (error) {
       console.error("Failed to enable notifications:", error);
     }
   };
 
-  const subscribeToNotifications = async (services) => {
+  const subscribeToNotifications = async (server) => {
     try {
-      const buttonService = services.find(
-        (service) => service.uuid === MicrobitUuid.buttonService[0]
+      const buttonService = await server.getPrimaryService(
+        MicrobitUuid.buttonService[0]
       );
-      if (!buttonService) {
-        console.log("Button Service not found");
-        return;
-      }
-
       const buttonCharacteristic = await buttonService.getCharacteristic(
         MicrobitUuid.buttonAState[0]
       );
-      await enableNotifications(buttonCharacteristic, handleButtonStateChanged);
 
-      const lightService = services.find(
-        (service) => service.uuid === MicrobitUuid.lightService[0]
-      );
-      if (!lightService) {
-        console.log("Light Service not found");
-        return;
+      await stopNotifications();
+
+      console.log("Button Characteristic:", buttonCharacteristic);
+      if (buttonCharacteristic.properties.notify) {
+        prevCharacteristicRef.current = buttonCharacteristic;
+        await enableNotifications(
+          buttonCharacteristic,
+          handleButtonStateChanged
+        );
+      } else {
+        console.warn(
+          `Button characteristic ${buttonCharacteristic.uuid} does not support notifications.`
+        );
       }
-
-      const lightCharacteristic = await lightService.getCharacteristic(
-        MicrobitUuid.lightLevel[0]
-      );
-      await enableNotifications(lightCharacteristic, handleLightStateChanged);
     } catch (error) {
       console.error("Error subscribing to notifications:", error);
     }
+
+    const ledService = await server.getPrimaryService(
+      MicrobitUuid.ledService[0]
+    );
+    if (!ledService) {
+      console.error("!!!!LED Service not found");
+      return;
+    }
+    console.log("!!!!LED Service:", ledService);
+
+    const ledMatrixState = await ledService.getCharacteristic(
+      MicrobitUuid.ledMatrixState[0]
+    );
+    console.log("!!!!!!LED Matrix State Characteristic:", ledMatrixState);
+
+    if (ledMatrixState.properties.notify) {
+      prevCharacteristicRef.current = ledMatrixState;
+      await enableNotifications(ledMatrixState, handleLEDStateChanged);
+    } else {
+      console.warn(
+        `!!!!!!LED matrix state characteristic ${ledMatrixState.uuid} does not support notifications.`
+      );
+    }
   };
 
-  const getServerandServices = async (device) => {
+  const getServerAndServices = async (device) => {
     try {
       console.log("Device:", device);
-      console.log("Device Gatt:", device.server.connected);
-
       if (!device.server.connected) {
         console.log("Device is not connected. Connecting...");
       } else {
@@ -90,7 +143,7 @@ export default function GamePage({ gameType }) {
       }
 
       const server = device.server.device.gatt;
-      const services = await server.getPrimaryServices();
+      const services = device.services;
       return { server, services };
     } catch (error) {
       console.error("Error connecting to device:", error);
@@ -98,66 +151,90 @@ export default function GamePage({ gameType }) {
   };
 
   const startGame = async () => {
-    const randomDevice = getRandomDevice(devices);
-    if (!randomDevice) {
+    const newRandomDevice = getRandomDevice(devices);
+    if (!newRandomDevice) {
       console.error("No devices connected. Please connect a device");
       return;
     }
+    console.log("Random Device selected:", newRandomDevice);
 
     try {
-      const { server, services } = await getServerandServices(
-        randomDevice.device
+      const { server, services } = await getServerAndServices(
+        newRandomDevice.device
       );
-      await subscribeToNotifications(services);
-
       setGameState({
         score: 0,
         timer: 5,
         round: 1,
         gameStarted: true,
         gameOver: false,
-        randomDevice,
+        randomDevice: newRandomDevice,
         server,
         services,
       });
 
-      console.log("Game started. Random device:", randomDevice);
+      await subscribeToNotifications(server);
+      console.log("Game started. Random device:", newRandomDevice);
     } catch (error) {
       console.error("Error starting the game:", error);
     }
   };
 
-  const nextRound = () => {
-    if (round < 7) {
-      const randomDevice = getRandomDevice(devices);
+  const nextRound = async () => {
+    console.log("Next Round", gameState.round, round);
+    if (gameState.round > 7) {
+      console.log("Game Over!");
+      setGameState((prev) => ({ ...prev, gameOver: true }));
+      return;
+    }
 
-      if (!randomDevice) {
-        console.error("No devices connected. Please connect a device");
-        return;
-      }
-      const { server, services } = getServerandServices(randomDevice.device);
+    const newRandomDevice = getRandomDevice(devices);
+    if (!newRandomDevice) {
+      console.log("No device found, returning...");
+      return;
+    }
+
+    setGameState((prev) => ({
+      ...prev,
+      timer: 5,
+
+      randomDevice: newRandomDevice,
+      server,
+      services,
+    }));
+
+    await stopNotifications();
+
+    try {
+      const { server, services } = await getServerAndServices(
+        newRandomDevice.device
+      );
       setGameState((prev) => ({
         ...prev,
-        round: prev.round + 1,
-        timer: 5,
-        randomDevice,
         server,
         services,
       }));
-    } else {
-      setGameState((prev) => ({ ...prev, gameOver: true }));
+
+      await subscribeToNotifications(server);
+    } catch (error) {
+      console.error("Error during round setup:", error);
     }
   };
 
   const handleButtonStateChanged = (event) => {
     const value = event.target.value.getUint8(0);
     if (value === 1) {
-      setGameState((prev) => ({ ...prev, score: prev.score + 1 }));
+      gameState.round = gameState.round + 1;
+      setGameState((prev) => ({
+        ...prev,
+        score: prev.score + 1,
+        round: gameState.round,
+      }));
       nextRound();
     }
   };
 
-  const handleLightStateChanged = (event) => {
+  const handleLEDStateChanged = (event) => {
     const value = event.target.value.getUint8(0);
     if (value < 10) {
       setGameState((prev) => ({ ...prev, score: prev.score + 1 }));
@@ -177,36 +254,49 @@ export default function GamePage({ gameType }) {
           : null;
 
       if (timer === 0) {
-        setGameState((prev) => ({ ...prev, score: prev.score - 2 }));
+        gameState.round = gameState.round + 1;
+        setGameState((prev) => ({
+          ...prev,
+          score: prev.score - 2,
+          round: gameState.round,
+        }));
         nextRound();
       }
 
-      return () => clearInterval(countdown);
+      if (gameOver) {
+        clearInterval(countdown);
+        setGameState((prev) => ({ ...prev, timer: 0 }));
+      }
+
+      return () => {
+        if (countdown) clearInterval(countdown);
+      };
     }
   }, [timer, gameStarted, gameOver]);
 
-  const handleReconnect = async () => {
-    if (randomDevice) {
-      try {
-        const { server, services } = await getServerandServices(
-          randomDevice.device
-        );
-        await subscribeToNotifications(services);
-        setGameState((prev) => ({
-          ...prev,
-          server,
-          services,
-        }));
-      } catch (error) {
-        console.error("Error reconnecting to device:", error);
-      }
+  const handleDeviceState = async () => {
+    if (!randomDevice) return;
+
+    console.log("Handling device:", randomDevice.device);
+
+    if (previousDevice) {
+      console.log("Turning off previous device:", previousDevice.device);
+      await turnOffDevice(previousDevice.device);
     }
+
+    console.log("Lighting up the new device:", randomDevice.device);
+    await lightUpDevice(randomDevice.device);
+    setPreviousDevice(randomDevice);
   };
+
+  useEffect(() => {
+    handleDeviceState();
+  }, [randomDevice, previousDevice]);
 
   return (
     <div className="game-container">
-      <h2>{gameType === "button" ? "Button Game" : "Light Sensor Game"}</h2>
-      <ConnectedDevices />
+      <h1>{gameType === "button" ? "Button Game" : "Light Sensor Game"}</h1>
+      <ConnectedDevicesList />
 
       {!gameStarted ? (
         <div>
@@ -228,12 +318,6 @@ export default function GamePage({ gameType }) {
             <p>
               {gameType === "button" ? "Press Button A" : "Cover Light Sensor"}
             </p>
-            <p>Hello</p>
-            {/* Show the reconnect button when there are no devices */}
-            {/* {devices.length === 0 && !gameStarted && (
-              <ReconnectButton />
-            )} */}
-            {/* {randomDevice && <ReconnectButton />} */}
           </div>
         </>
       )}

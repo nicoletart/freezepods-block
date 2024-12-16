@@ -1,3 +1,4 @@
+"use client";
 import React, { useState } from "react";
 import { useSpring, animated } from "@react-spring/web";
 import Link from "next/link";
@@ -16,7 +17,7 @@ const AnimatedButton = ({ children, onClick, href, className, ...props }) => {
     return (
       <Link href={href} passHref>
         <animated.div
-          {...props} 
+          {...props}
           style={springStyles}
           className={`animated-button ${className}`}
           onMouseEnter={() => setIsHovering(true)}
@@ -30,7 +31,7 @@ const AnimatedButton = ({ children, onClick, href, className, ...props }) => {
 
   return (
     <animated.button
-      {...props} 
+      {...props}
       style={springStyles}
       className={`animated-button ${className}`}
       onClick={onClick}

@@ -6,9 +6,7 @@ export default function ButtonGame() {
     <div>
       <BackButton />
       <div className="welcome-content">
-        <h1>Button Game Page</h1>
-        <p>This is the Button Game page.</p>
-        <GamePage gameType="button" />;
+        <GamePage gameType="button" />
       </div>
     </div>
   );

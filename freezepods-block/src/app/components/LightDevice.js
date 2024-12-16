@@ -1,45 +1,66 @@
-import { useEffect } from "react";
 import { MicrobitUuid } from "./MicrobitUuid";
 
-const LightDevice = ({ device }) => {
-  useEffect(() => {
-    if (device && device.services?.length) {
-      const lightUp = async () => {
-        try {
-          console.log("Device services:", device.services);
-          const ledService = device.services.find(
-            (service) => service.uuid === MicrobitUuid.ledService[0]
-          );
+let isOperationInProgress = false;
 
-          if (!ledService) {
-            console.error("LED Service not found!");
-            return;
-          }
+const getLedMatrixState = async (device) => {
+  if (!device) {
+    throw new Error("No device provided!");
+  }
 
-          const ledMatrixState = await ledService.getCharacteristic(
-            MicrobitUuid.ledMatrixState[0]
-          );
+  const server = device.server;
+  const ledService = await server.getPrimaryService(MicrobitUuid.ledService[0]);
 
-          if (!ledMatrixState) {
-            console.error("LED Matrix State Characteristic not found!");
-            return;
-          }
+  if (!ledService) {
+    throw new Error("LED Service not found!");
+  }
 
-          const data = new Uint8Array([0x1f, 0x1f, 0x1f, 0x1f, 0x1f]);
-          await ledMatrixState.writeValue(data);
-          console.log("Device screen lit up!");
-        } catch (error) {
-          console.error("Failed to light up the device:", error);
-        }
-      };
+  const ledMatrixState = await ledService.getCharacteristic(
+    MicrobitUuid.ledMatrixState[0]
+  );
 
-      lightUp();
-    } else {
-      console.warn("Device or its services are not available.");
-    }
-  }, [device]);
+  if (!ledMatrixState) {
+    throw new Error("LED Matrix State Characteristic not found!");
+  }
 
-  return null;
+  return ledMatrixState;
 };
 
-export default LightDevice;
+export const lightUpDevice = async (device) => {
+  if (isOperationInProgress) {
+    console.warn("Previous operation still in progress. Please wait.");
+    return;
+  }
+
+  isOperationInProgress = true;
+
+  try {
+    const ledMatrixState = await getLedMatrixState(device);
+    const data = new Uint8Array([0x1f, 0x1f, 0x1f, 0x1f, 0x1f]);
+    await ledMatrixState.writeValue(data);
+    console.log("Device screen lit up!");
+  } catch (error) {
+    console.error("Failed to light up the device:", error);
+  } finally {
+    isOperationInProgress = false;
+  }
+};
+
+export const turnOffDevice = async (device) => {
+  if (isOperationInProgress) {
+    console.warn("Previous operation still in progress. Please wait.");
+    return;
+  }
+
+  isOperationInProgress = true;
+
+  try {
+    const ledMatrixState = await getLedMatrixState(device);
+    const data = new Uint8Array([0, 0, 0, 0, 0]);
+    await ledMatrixState.writeValue(data);
+    console.log("Device screen turned off!");
+  } catch (error) {
+    console.error("Failed to turn off the device:", error);
+  } finally {
+    isOperationInProgress = false;
+  }
+};
