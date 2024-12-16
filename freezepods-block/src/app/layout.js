@@ -1,6 +1,7 @@
 import localFont from "next/font/local";
 import "./globals.css";
 import { ConnectedDevicesProvider } from "./context/ConnectedDevicesContext";
+import { BlocklyProvider } from "./context/BlocklyContext";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -27,7 +28,10 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ConnectedDevicesProvider>{children}</ConnectedDevicesProvider>
+        <ConnectedDevicesProvider>
+          {" "}
+          <BlocklyProvider>{children}</BlocklyProvider>
+        </ConnectedDevicesProvider>
       </body>
     </html>
   );

@@ -7,9 +7,12 @@ import ReconnectButton from "../components/ReconnectButton";
 import AnimatedButton from "../components/AnimatedButton";
 import ConnectedDevicesList from "../components/ConnectedDevicesList";
 import { lightUpDevice, turnOffDevice } from "../components/LightDevice";
+import { useRounds } from "../context/BlocklyContext";
 
 export default function GamePage({ gameType }) {
   const { devices, reconnectDevices, ready } = useDevices();
+  let { rounds, timerLength } = useRounds();
+
   const [gameState, setGameState] = useState({
     score: 0,
     timer: 5,
@@ -164,7 +167,7 @@ export default function GamePage({ gameType }) {
       );
       setGameState({
         score: 0,
-        timer: 5,
+        timer: timerLength,
         round: 1,
         gameStarted: true,
         gameOver: false,
@@ -182,7 +185,7 @@ export default function GamePage({ gameType }) {
 
   const nextRound = async () => {
     console.log("Next Round", gameState.round, round);
-    if (gameState.round > 7) {
+    if (gameState.round > rounds) {
       console.log("Game Over!");
       setGameState((prev) => ({ ...prev, gameOver: true }));
       return;
@@ -196,7 +199,7 @@ export default function GamePage({ gameType }) {
 
     setGameState((prev) => ({
       ...prev,
-      timer: 5,
+      timer: timerLength,
 
       randomDevice: newRandomDevice,
       server,
@@ -310,7 +313,9 @@ export default function GamePage({ gameType }) {
       ) : (
         <>
           <div className="score-board">
-            <p>Round: {round} / 7</p>
+            <p>
+              Round: {round} / {rounds}
+            </p>
             <p>Score: {score}</p>
             <p>Time Remaining: {timer}s</p>
           </div>
