@@ -68,7 +68,7 @@ export default function ConnectDevice() {
         id: device.id,
         name: device.name,
         server: server,
-        services: services,
+        services: services.map((service) => service.uuid)
       });
     } catch (error) {
       if (error.name === "NotFoundError") {

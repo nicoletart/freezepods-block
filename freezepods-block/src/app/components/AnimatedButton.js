@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useSpring, animated } from "@react-spring/web";
 import Link from "next/link";
 
-const AnimatedButton = ({ children, onClick, href, className }) => {
+const AnimatedButton = ({ children, onClick, href, className, ...props }) => {
   const [isHovering, setIsHovering] = useState(false);
 
   const springStyles = useSpring({
@@ -16,6 +16,7 @@ const AnimatedButton = ({ children, onClick, href, className }) => {
     return (
       <Link href={href} passHref>
         <animated.div
+          {...props} 
           style={springStyles}
           className={`animated-button ${className}`}
           onMouseEnter={() => setIsHovering(true)}
@@ -29,6 +30,7 @@ const AnimatedButton = ({ children, onClick, href, className }) => {
 
   return (
     <animated.button
+      {...props} 
       style={springStyles}
       className={`animated-button ${className}`}
       onClick={onClick}

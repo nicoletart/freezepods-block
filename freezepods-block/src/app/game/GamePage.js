@@ -17,7 +17,7 @@ export default function GamePage({ gameType }) {
     gameStarted: false,
     gameOver: false,
     randomDevice: null,
-    server: null, // Store GATT server here
+    server: null,
     services: null,
   });
   const {
@@ -30,15 +30,6 @@ export default function GamePage({ gameType }) {
     server,
     services,
   } = gameState;
-
-  useEffect(() => {
-    const [navigationEntry] = performance.getEntriesByType("navigation");
-
-    if (navigationEntry && navigationEntry.type === "reload" && ready) {
-      console.log("Page refreshed. Attempting to reconnect devices...");
-      reconnectDevices();
-    }
-  }, [ready]);
 
   const getRandomDevice = (devices) => {
     if (!devices || devices.length === 0) return null;
@@ -92,15 +83,12 @@ export default function GamePage({ gameType }) {
       console.log("Device:", device);
       console.log("Device Gatt:", device.server.connected);
 
-      // If device is not connected (i.e., gatt is not set or connected), try reconnecting
       if (!device.server.connected) {
         console.log("Device is not connected. Connecting...");
-        // await device.gatt.connect();
       } else {
         console.log("Device is already connected.");
       }
 
-      // Retrieve the GATT server and services
       const server = device.server.device.gatt;
       const services = await server.getPrimaryServices();
       return { server, services };
@@ -129,7 +117,7 @@ export default function GamePage({ gameType }) {
         gameStarted: true,
         gameOver: false,
         randomDevice,
-        server, // Store the GATT server here
+        server,
         services,
       });
 
@@ -198,7 +186,6 @@ export default function GamePage({ gameType }) {
   }, [timer, gameStarted, gameOver]);
 
   const handleReconnect = async () => {
-    // This function will be triggered by the reconnect button
     if (randomDevice) {
       try {
         const { server, services } = await getServerandServices(
@@ -215,17 +202,6 @@ export default function GamePage({ gameType }) {
       }
     }
   };
-
-  //   const handleReconnectNew = async () => {
-  //     const reconnectedDevices = await reconnectDevices();
-  //     console.log("Reconnected Devices:", reconnectedDevices);
-
-  //     // You can now use the `reconnectedDevices` array
-  //     // For example, to start the game with the reconnected devices
-  //     if (reconnectedDevices.length > 0) {
-  //       // Do something with the reconnected devices, like starting the game
-  //     }
-  //   };
 
   return (
     <div className="game-container">
