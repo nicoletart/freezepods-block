@@ -69,7 +69,7 @@ export default function GamePage({ gameType }) {
   };
 
   const enableNotifications = async (characteristic, handler) => {
-    console.log("Enabling notifications for:", characteristic);
+    console.log("Enabling notifications", characteristic);
     try {
       if (!characteristic.properties.notify) {
         console.error(
@@ -85,7 +85,7 @@ export default function GamePage({ gameType }) {
     }
   };
 
-  const subscribeToNotifications = async (server) => {
+  const startNotifications = async (server) => {
     try {
       const buttonService = await server.getPrimaryService(
         MicrobitUuid.buttonService[0]
@@ -176,7 +176,7 @@ export default function GamePage({ gameType }) {
         services,
       });
 
-      await subscribeToNotifications(server);
+      await startNotifications(server);
       console.log("Game started. Random device:", newRandomDevice);
     } catch (error) {
       console.error("Error starting the game:", error);
@@ -218,7 +218,7 @@ export default function GamePage({ gameType }) {
         services,
       }));
 
-      await subscribeToNotifications(server);
+      await startNotifications(server);
     } catch (error) {
       console.error("Error during round setup:", error);
     }
