@@ -294,7 +294,7 @@ export default function GamePage({ gameType }) {
 
   useEffect(() => {
     handleDeviceState();
-  }, [randomDevice, previousDevice]);
+  }, [randomDevice]);
 
   return (
     <div className="game-container">
