@@ -27,7 +27,7 @@ export default function GamePage({ gameType }) {
   const [previousDevice, setPreviousDevice] = useState(null);
   const prevCharacteristicRef = useRef(null);
 
-  let index = 0;
+  let deviceIndex = useRef(0);
 
   const {
     score,
@@ -41,13 +41,10 @@ export default function GamePage({ gameType }) {
   } = gameState;
 
   const getRandomDevice = (devices) => {
-    if (index === 0) {
-      index = 1;
-      return devices[1];
-    } else {
-      index = 0;
-      return devices[0];
-    }
+    if (devices.length === 0) return null;
+
+    deviceIndex.current = (deviceIndex.current + 1) % devices.length;
+    return devices[deviceIndex.current];
   };
 
   useEffect(() => {
