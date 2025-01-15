@@ -211,7 +211,13 @@ export default function GamePage({ gameType }) {
       server: null,
       services: null,
     }));
-    await turnOffDevice(previousDeviceRef.current.device);
+    if (previousDeviceRef.current) {
+      console.log(
+        "Turning off previous device:",
+        previousDeviceRef.current.device
+      );
+      await turnOffDevice(previousDeviceRef.current.device);
+    }
     previousDeviceRef.current = null;
     await stopNotifications();
   };
