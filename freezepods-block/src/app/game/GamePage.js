@@ -6,12 +6,20 @@ import { MicrobitUuid } from "../components/MicrobitUuid";
 import AnimatedButton from "../components/AnimatedButton";
 import ConnectedDevicesList from "../components/ConnectedDevicesList";
 import { lightUpDevice, turnOffDevice } from "../components/LightDevice";
-import { useRounds } from "../context/BlocklyContext";
+import { useBlocklyContext } from "../context/BlocklyContext";
 
 export default function GamePage({ gameType }) {
   const { devices } = useDevices();
-  let { rounds, timerLength } = useRounds();
-
+  let { rounds, timerLength, button } = useBlocklyContext();
+  console.log(
+    "Rounds:",
+    rounds,
+    "Timer Length:",
+    timerLength,
+    "Button:",
+    button
+  );
+  const [buttonState, setButtonState] = useState(MicrobitUuid.buttonAState[0]);
   const [gameState, setGameState] = useState({
     score: 0,
     timer: 5,
@@ -50,6 +58,16 @@ export default function GamePage({ gameType }) {
   useEffect(() => {
     console.log("Previous Characteristic:", prevCharacteristicRef.current);
   }, [prevCharacteristicRef.current]);
+
+  useEffect(() => {
+    setButtonState(
+      button === "A"
+        ? MicrobitUuid.buttonAState[0]
+        : button === "B"
+        ? MicrobitUuid.buttonBState[0]
+        : MicrobitUuid.buttonAState[0]
+    );
+  }, [button]);
 
   useEffect(() => {
     localRound.current = gameState.round;
@@ -102,7 +120,7 @@ export default function GamePage({ gameType }) {
         MicrobitUuid.buttonService[0]
       );
       const buttonCharacteristic = await buttonService.getCharacteristic(
-        MicrobitUuid.buttonAState[0]
+        buttonState
       );
 
       await stopNotifications();
@@ -359,7 +377,9 @@ export default function GamePage({ gameType }) {
           </div>
           <div className="hit-target">
             <p>
-              {gameType === "button" ? "Press Button A" : "Cover Light Sensor"}
+              {gameType === "button"
+                ? `Press Button ${button}`
+                : "Cover Light Sensor"}
             </p>
           </div>
         </>

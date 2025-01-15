@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import * as Blockly from "blockly";
 import { javascriptGenerator } from "blockly/javascript";
 import AnimatedButton from "./AnimatedButton";
-import { useRounds } from "../context/BlocklyContext";
+import { useBlocklyContext } from "../context/BlocklyContext";
 
 const customBlocksSet = new Set();
 
@@ -36,6 +36,22 @@ const getCustomBlocks = () => {
     },
   };
 
+  Blockly.Blocks["choose_button"] = {
+    init: function () {
+      this.appendDummyInput()
+        .appendField("Choose button")
+        .appendField(
+          new Blockly.FieldDropdown([
+            ["A", "A"],
+            ["B", "B"],
+          ]),
+          "BUTTON"
+        );
+      this.setColour(160);
+      this.setTooltip("Choose between button A and B for the game.");
+    },
+  };
+
   javascriptGenerator["rounds_set"] = function (block) {
     const rounds = block.getFieldValue("ROUNDS") || 5;
     return `let rounds = ${rounds};\n`;
@@ -43,10 +59,11 @@ const getCustomBlocks = () => {
 
   customBlocksSet.add("rounds_set");
   customBlocksSet.add("timer_length");
+  customBlocksSet.add("choose_button");
 };
 
 export default function BlocklyComponent() {
-  const { setRounds, setTimerLength } = useRounds();
+  const { setRounds, setTimerLength, setButton } = useBlocklyContext();
   const blocklyDiv = useRef(null);
   const workspaceRef = useRef(null);
   const [generatedCode, setGeneratedCode] = useState("");
@@ -71,6 +88,7 @@ export default function BlocklyComponent() {
           <block type="text_print"></block>
           <block type="rounds_set"></block>
           <block type="timer_length"></block>
+          <block type="choose_button"></block>
         </xml>
       `;
 
@@ -134,37 +152,46 @@ export default function BlocklyComponent() {
   };
 
   const saveWorkspace = () => {
-    console.log("Saving Blockly workspace");
     const workspace = workspaceRef.current;
 
     if (workspace) {
-      const workspaceXml = Blockly.Xml.workspaceToDom(workspace);
-      const workspaceText = Blockly.Xml.domToText(workspaceXml);
+      const roundsBlock = workspace
+        .getAllBlocks()
+        .find((b) => b.type === "rounds_set");
+      const timerBlock = workspace
+        .getAllBlocks()
+        .find((b) => b.type === "timer_length");
+      const buttonBlock = workspace
+        .getAllBlocks()
+        .find((b) => b.type === "choose_button");
 
-      localStorage.setItem(WORKSPACE_STORAGE_KEY, workspaceText);
+      const roundsValue = roundsBlock
+        ? parseInt(roundsBlock.getFieldValue("ROUNDS"), 10) || 5
+        : 5;
+      setRounds(roundsValue);
 
-      const roundsBlock = workspace.getAllBlocks().find((b) => b.type === "rounds_set");
-      const timerBlock = workspace.getAllBlocks().find((b) => b.type === "timer_length");
+      const timerValue = timerBlock
+        ? parseInt(timerBlock.getFieldValue("TIMER"), 10) || 5
+        : 5;
+      setTimerLength(timerValue);
 
+      const buttonValue = buttonBlock
+        ? buttonBlock.getFieldValue("BUTTON") || "A"
+        : "A";
+      setButton(buttonValue);
+
+
+      let info = "";
       if (roundsBlock) {
-        const roundsValue = roundsBlock.getFieldValue("ROUNDS");
-        setRounds(roundsValue);
-        console.log(`Number of rounds set to ${roundsValue}`);
-      } else {
-        console.error("rounds_set block is not in the workspace");
+        info += `Number of rounds set to ${roundsValue}.\n`;
       }
-
       if (timerBlock) {
-        const timerLengthValue = timerBlock.getFieldValue("TIMER");
-        setTimerLength(timerLengthValue);
-        console.log(`Timer length set to ${timerLengthValue}`);
-      } else {
-        console.error("timer_length block is not in the workspace");
+        info += `Timer length set to ${timerValue}.\n`;
       }
-
-      setSavedInformation(
-        `Number of rounds set to ${roundsBlock ? roundsBlock.getFieldValue("ROUNDS") : "N/A"}.\nTimer length set to ${timerBlock ? timerBlock.getFieldValue("TIMER") : "N/A"}`
-      );
+      if (buttonBlock) {
+        info += `Button selected: ${buttonValue}`;
+      }
+      setSavedInformation(info);
     } else {
       console.error("No Blockly workspace");
     }
