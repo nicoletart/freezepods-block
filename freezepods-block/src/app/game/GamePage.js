@@ -3,14 +3,13 @@
 import { use, useEffect, useState, useRef } from "react";
 import { useDevices } from "../context/ConnectedDevicesContext";
 import { MicrobitUuid } from "../components/MicrobitUuid";
-import ReconnectButton from "../components/ReconnectButton";
 import AnimatedButton from "../components/AnimatedButton";
 import ConnectedDevicesList from "../components/ConnectedDevicesList";
 import { lightUpDevice, turnOffDevice } from "../components/LightDevice";
 import { useRounds } from "../context/BlocklyContext";
 
 export default function GamePage({ gameType }) {
-  const { devices, reconnectDevices, ready } = useDevices();
+  const { devices } = useDevices();
   let { rounds, timerLength } = useRounds();
 
   const [gameState, setGameState] = useState({
@@ -195,11 +194,25 @@ export default function GamePage({ gameType }) {
     }
   };
 
+  const endGame = async () => {
+    await stopNotifications();
+    setGameState((prev) => ({
+      ...prev,
+      timer: 5,
+      round: 1,
+      gameStarted: false,
+      gameOver: true,
+      randomDevice: null,
+      server: null,
+      services: null,
+    }));
+  };
+
   const nextRound = async () => {
     console.log("Next Round", gameState.round, round);
     if (gameState.round > rounds) {
       console.log("Game Over!");
-      setGameState((prev) => ({ ...prev, gameOver: true }));
+      endGame();
       return;
     }
 
@@ -279,12 +292,6 @@ export default function GamePage({ gameType }) {
         console.log("Timer ran out. About to call next round");
         nextRound();
       }
-
-      if (gameOver) {
-        clearInterval(countdown);
-        setGameState((prev) => ({ ...prev, timer: 0 }));
-      }
-
       return () => {
         if (countdown) clearInterval(countdown);
       };
@@ -315,14 +322,15 @@ export default function GamePage({ gameType }) {
       <h1>{gameType === "button" ? "Button Game" : "Light Sensor Game"}</h1>
       <ConnectedDevicesList />
 
-      {!gameStarted ? (
-        <div>
-          <AnimatedButton onClick={startGame}>Start Game</AnimatedButton>
-        </div>
-      ) : gameOver ? (
+      {gameOver ? (
         <div>
           <h3>Game Over!</h3>
           <p>Final Score: {score}</p>
+          <AnimatedButton onClick={startGame}>Start Game</AnimatedButton>
+        </div>
+      ) : !gameStarted ? (
+        <div>
+          <AnimatedButton onClick={startGame}>Start Game</AnimatedButton>
         </div>
       ) : (
         <>
