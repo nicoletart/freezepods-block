@@ -2,9 +2,12 @@
 
 import React from "react";
 import { useDevices } from "../context/ConnectedDevicesContext";
+import AnimatedButton from "./AnimatedButton";
 
-export default function ConnectedDevicesList() {
-  const { devices, loading } = useDevices();
+export default function ConnectedDevicesList({
+  showRemoveDevicesOption = false,
+}) {
+  const { devices, loading, handleRemoveDevice } = useDevices();
   return (
     <div>
       <h2>Connected Micro:bits</h2>
@@ -18,7 +21,22 @@ export default function ConnectedDevicesList() {
             if (!device || !device.name) {
               return null;
             }
-            return <li key={device.id || index}>{device.name}</li>;
+            return (
+              <li
+                key={device.id || index}
+                className="connected-devices-list-item"
+              >
+                <p>{device.name}</p>
+                {showRemoveDevicesOption && (
+                  <AnimatedButton
+                    onClick={() => handleRemoveDevice(device)}
+                    className="remove-button"
+                  >
+                    &#x2715;
+                  </AnimatedButton>
+                )}
+              </li>
+            );
           })}
         </ul>
       )}

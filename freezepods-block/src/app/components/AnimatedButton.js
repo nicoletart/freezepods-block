@@ -10,7 +10,6 @@ const AnimatedButton = ({ children, onClick, href, className, ...props }) => {
     opacity: isHovering ? 0.6 : 1,
     transform: isHovering ? "scale(1.1)" : "scale(1)",
     config: { tension: 100, friction: 20 },
-    marginTop: "20px",
   });
 
   if (href) {
