@@ -77,7 +77,6 @@ h2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(200px, 1fr));
   justify-items: center;
-  align-items: center;
 }
 
 .welcome-content {
