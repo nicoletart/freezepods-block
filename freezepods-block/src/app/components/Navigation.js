@@ -21,7 +21,7 @@ export default function Navigation() {
         </Link>
         {!isGameEnabled && (
           <span className="tooltip">
-            You need at least 2 micro:bits connected to play
+            Connect to at least 2 Micro:bits to play
           </span>
         )}
       </div>
