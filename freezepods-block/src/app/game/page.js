@@ -11,9 +11,15 @@ export default function Game() {
 
         <div className="game-buttons">
           <AnimatedButton href="/game/button-game">Button Game</AnimatedButton>
-          <AnimatedButton href="/game/light-sensor-game">
-            Light Sensor Game
-          </AnimatedButton>
+
+          <div className="light-sensor-button-container">
+            <AnimatedButton className="light-sensor-button">
+              Light Sensor Game
+            </AnimatedButton>
+            <span style={{ display: "block", fontSize: "12px", color: "gray", marginTop: "5px" }}>
+              Coming soon!
+            </span>
+          </div>
         </div>
       </div>
       <div>
