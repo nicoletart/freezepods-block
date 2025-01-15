@@ -26,6 +26,7 @@ export default function GamePage({ gameType }) {
 
   const [previousDevice, setPreviousDevice] = useState(null);
   const prevCharacteristicRef = useRef(null);
+  const localRound = useRef(gameState.round);
 
   let deviceIndex = useRef(0);
 
@@ -51,22 +52,37 @@ export default function GamePage({ gameType }) {
     console.log("Previous Characteristic:", prevCharacteristicRef.current);
   }, [prevCharacteristicRef.current]);
 
+  useEffect(() => {
+    localRound.current = gameState.round;
+  }, [gameState.round]);
+
   const stopNotifications = async () => {
     if (prevCharacteristicRef.current) {
       console.log(
-        "Stopping notifications for characteristic:",
+        "Stopping notifications for:",
         prevCharacteristicRef.current.uuid
       );
-      await prevCharacteristicRef.current.stopNotifications();
-      prevCharacteristicRef.current.removeEventListener(
-        "characteristicvaluechanged",
-        handleButtonStateChanged
-      );
+      try {
+        await prevCharacteristicRef.current.stopNotifications();
+        if (prevCharacteristicRef.current) {
+          prevCharacteristicRef.current.removeEventListener(
+            "characteristicvaluechanged",
+            handleButtonStateChanged
+          );
+          console.log("Notifications stopped and listener removed.");
+        }
+      } catch (error) {
+        console.error("Error stopping notifications:", error);
+      }
+      prevCharacteristicRef.current = null;
     }
   };
 
   const enableNotifications = async (characteristic, handler) => {
-    console.log("Enabling notifications", characteristic);
+    console.log(
+      "Enabling notifications for characteristic:",
+      characteristic.uuid
+    );
     try {
       if (!characteristic.properties.notify) {
         console.error(
@@ -76,7 +92,6 @@ export default function GamePage({ gameType }) {
       }
       await characteristic.startNotifications();
       characteristic.addEventListener("characteristicvaluechanged", handler);
-      console.log("Notifications enabled for:", characteristic.uuid);
     } catch (error) {
       console.error("Failed to enable notifications:", error);
     }
@@ -223,13 +238,14 @@ export default function GamePage({ gameType }) {
 
   const handleButtonStateChanged = (event) => {
     const value = event.target.value.getUint8(0);
-    if (value === 1) {
+    if (value === 1 && localRound.current === gameState.round) {
       gameState.round = gameState.round + 1;
       setGameState((prev) => ({
         ...prev,
         score: prev.score + 1,
         round: gameState.round,
       }));
+      console.log("Button pressed. About to call next round");
       nextRound();
     }
   };
@@ -260,6 +276,7 @@ export default function GamePage({ gameType }) {
           score: prev.score - 2,
           round: gameState.round,
         }));
+        console.log("Timer ran out. About to call next round");
         nextRound();
       }
 
