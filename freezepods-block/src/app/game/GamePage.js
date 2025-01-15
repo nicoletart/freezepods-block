@@ -23,8 +23,8 @@ export default function GamePage({ gameType }) {
     services: null,
   });
 
-  const [previousDevice, setPreviousDevice] = useState(null);
   const prevCharacteristicRef = useRef(null);
+  const previousDeviceRef = useRef(null);
   const localRound = useRef(gameState.round);
 
   let deviceIndex = useRef(0);
@@ -165,6 +165,12 @@ export default function GamePage({ gameType }) {
   };
 
   const startGame = async () => {
+    for (const device of devices) {
+      if (device.device.ledOn) {
+        console.log("Turning off device:", device.device);
+        await turnOffDevice(device.device);
+      }
+    }
     const newRandomDevice = getRandomDevice(devices);
     if (!newRandomDevice) {
       console.error("No devices connected. Please connect a device");
@@ -195,7 +201,6 @@ export default function GamePage({ gameType }) {
   };
 
   const endGame = async () => {
-    await stopNotifications();
     setGameState((prev) => ({
       ...prev,
       timer: 5,
@@ -206,6 +211,9 @@ export default function GamePage({ gameType }) {
       server: null,
       services: null,
     }));
+    await turnOffDevice(previousDeviceRef.current.device);
+    previousDeviceRef.current = null;
+    await stopNotifications();
   };
 
   const nextRound = async () => {
@@ -302,15 +310,17 @@ export default function GamePage({ gameType }) {
     if (!randomDevice) return;
 
     console.log("Handling device:", randomDevice.device);
-
-    if (previousDevice) {
-      console.log("Turning off previous device:", previousDevice.device);
-      await turnOffDevice(previousDevice.device);
+    if (previousDeviceRef.current) {
+      console.log(
+        "Turning off previous device:",
+        previousDeviceRef.current.device
+      );
+      await turnOffDevice(previousDeviceRef.current.device);
     }
 
     console.log("Lighting up the new device:", randomDevice.device);
     await lightUpDevice(randomDevice.device);
-    setPreviousDevice(randomDevice);
+    previousDeviceRef.current = randomDevice;
   };
 
   useEffect(() => {

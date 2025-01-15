@@ -37,6 +37,7 @@ export const lightUpDevice = async (device) => {
     const ledMatrixState = await getLedMatrixState(device);
     const data = new Uint8Array([0x1f, 0x1f, 0x1f, 0x1f, 0x1f]);
     await ledMatrixState.writeValue(data);
+    device.ledOn = true;
     console.log("Device screen lit up!");
   } catch (error) {
     console.error("Failed to light up the device:", error);
@@ -57,6 +58,7 @@ export const turnOffDevice = async (device) => {
     const ledMatrixState = await getLedMatrixState(device);
     const data = new Uint8Array([0, 0, 0, 0, 0]);
     await ledMatrixState.writeValue(data);
+    device.ledOn = false;
     console.log("Device screen turned off!");
   } catch (error) {
     console.error("Failed to turn off the device:", error);

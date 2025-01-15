@@ -88,6 +88,7 @@ export function ConnectedDevicesProvider({ children }) {
           name: newDevice.name,
           server: newDevice.server,
           services: newDevice.services,
+          ledOn: false
         },
       },
     ]);
@@ -166,9 +167,11 @@ export function ConnectedDevicesProvider({ children }) {
             return {
               ...device,
               device: {
+                ...device.id,
                 ...device.device,
                 server: server,
                 ...device.services,
+                ...device.ledOn
               },
               reconnected: true,
             };
