@@ -1,5 +1,7 @@
 import BackButton from "@/app/components/BackButton";
 import BlocklyComponent from "@/app/components/BlocklyComponent";
+import BlocklyEditor from "@/app/components/BlocklyEditor";
+import { BlocklyTest } from "@/app/components/BlocklyTest";
 
 export default function GameSettings() {
   return (
@@ -9,7 +11,7 @@ export default function GameSettings() {
         <h1>
           Choose the game settings using <b>Blockly</b>
         </h1>
-        <BlocklyComponent />
+        <BlocklyEditor />
       </div>
     </div>
   );

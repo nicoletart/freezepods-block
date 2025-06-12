@@ -184,11 +184,6 @@ li {
   background-color: rgb(0, 41, 162);
 }
 
-.light-sensor-button {
-  opacity: 0.4 !important;
-  pointer-events: none;
-}
-
 /* Screen Changes */
 
 @media (max-width: 925px) {

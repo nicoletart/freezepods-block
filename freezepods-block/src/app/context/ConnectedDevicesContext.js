@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 const ConnectedDevicesContext = createContext();
 
 export function ConnectedDevicesProvider({ children }) {
+  console.log("ConnectedDevicesProvider mounted");
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [ready, setReady] = useState(false);

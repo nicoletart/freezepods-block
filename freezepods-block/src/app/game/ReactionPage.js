@@ -12,88 +12,19 @@ import {
 } from "../components/LightDevice";
 import { useBlocklyContext } from "../context/BlocklyContext";
 
-const getButtonCharacteristic = (buttonType) => {
-  switch (buttonType) {
-    case 'A':
-      return MicrobitUuid.buttonAState[0];
-    case 'B':
-      return MicrobitUuid.buttonBState[0];
-    default:
-      return MicrobitUuid.buttonAState[0];
-  }
-};
-
-const getSensorCharacteristic = (sensorType, button = null) => {
-  switch (sensorType) {
-    case 'button':
-      return button === "B" ? MicrobitUuid.buttonBState[0] : MicrobitUuid.buttonAState[0];
-    case 'accelerometer':
-      return MicrobitUuid.accelerometerData[0];
-    case 'magnetometer':
-      return MicrobitUuid.magnetometerData[0];
-    case 'temperature':
-      return MicrobitUuid.temperature[0];
-    case 'lightSensor':
-      return MicrobitUuid.uartTxCharacteristic[0];
-    default:
-      return MicrobitUuid.buttonAState[0];
-  }
-};
-
-const getSensorService = (sensorType) => {
-  switch (sensorType) {
-    case 'button':
-      return MicrobitUuid.buttonService[0];
-    case 'accelerometer':
-      return MicrobitUuid.accelerometerService[0];
-    case 'magnetometer':
-      return MicrobitUuid.magnetometerService[0];
-    case 'temperature':
-      return MicrobitUuid.temperatureService[0];
-    case 'lightSensor':
-      return MicrobitUuid.uartService[0];
-    default:
-      return MicrobitUuid.buttonService[0];
-  }
-};
-
-const getHandlerForSensor = (sensorType, handlers) => {
-  const {
-    handleButtonStateChanged,
-    handleAccelerometerDataChanged,
-    handleMagnetometerDataChanged,
-    handleTemperatureChanged,
-    handleUARTTxStateChanged
-  } = handlers;
-
-  switch (sensorType) {
-    case 'button':
-      return handleButtonStateChanged;
-    case 'accelerometer':
-      return handleAccelerometerDataChanged;
-    case 'magnetometer':
-      return handleMagnetometerDataChanged;
-    case 'temperature':
-      return handleTemperatureChanged;
-    case 'lightSensor':
-      return handleUARTTxStateChanged;
-    default:
-      return handleButtonStateChanged;
-  }
-};
-
-export default function GamePage({ gameType }) {
+export default function ReactionPage({ gameType }) {
   const { devices } = useDevices();
-  let { timerLength, rounds, button, code } = useBlocklyContext();
+  let { rounds, timerLength, button, code } = useBlocklyContext();
+  console.log("Code:", code);
+  const rankings = useRef([]);
+  const topThreeRankings = useRef({ button: [], accelerometer: [] });
   console.log(
     "Rounds:",
     rounds,
     "Timer Length:",
     timerLength,
     "Button:",
-    button,
-    "Code:",
-    code
+    button
   );
   const [buttonState, setButtonState] = useState(MicrobitUuid.buttonAState[0]);
   const [gameState, setGameState] = useState({
@@ -106,6 +37,11 @@ export default function GamePage({ gameType }) {
     server: null,
     services: null,
   });
+  const startTime = useRef(null);
+  const shakeThreshold = 4500;
+  const shakeDebounce = 1000;
+  const lastShakeValues = useRef({ x: 0, y: 0, z: 0 });
+  const lastShakeTime = useRef(0);
 
   const prevCharacteristicRef = useRef(null);
   const previousDeviceRef = useRef(null);
@@ -123,6 +59,46 @@ export default function GamePage({ gameType }) {
     server,
     services,
   } = gameState;
+
+  const formatTime = (time) => {
+    return time < 1000 ? `${time} ms` : `${(time / 1000).toFixed(2)} s`;
+  };
+
+  useEffect(() => {
+    topThreeRankings.current = JSON.parse(
+      localStorage.getItem("topThreeRankings")
+    ) || {
+      button: [],
+      accelerometer: [],
+    };
+  }, []);
+
+  useEffect(() => {
+    console.log("Rankings:", rankings.current);
+    if (rankings.current.length > 0) {
+      const lastTime = rankings.current[rankings.current.length - 1];
+      console.log("Last Time:", lastTime);
+      if (
+        topThreeRankings.current[gameType].length < 3 ||
+        lastTime < Math.max(...topThreeRankings.current[gameType])
+      ) {
+        topThreeRankings.current[gameType] = [
+          ...topThreeRankings.current[gameType],
+          lastTime,
+        ]
+          .sort((a, b) => a - b)
+          .slice(0, 3);
+        localStorage.setItem(
+          "topThreeRankings",
+          JSON.stringify(topThreeRankings.current)
+        );
+        console.log(
+          `Top 3 Rankings for :${gameType}`,
+          topThreeRankings.current[gameType]
+        );
+      }
+    }
+  }, [rankings.current.length]);
 
   const getRandomDevice = (devices) => {
     if (devices.length === 0) return null;
@@ -149,55 +125,10 @@ export default function GamePage({ gameType }) {
     localRound.current = gameState.round;
   }, [gameState.round]);
 
-  useEffect(() => {
-    try {
-      if (!code) return;
-
-      // Create game functions in global scope
-      window.gameSetScore = (score) => {
-        setGameState(prev => ({...prev, score}));
-      };
-      
-      window.gameNextRound = () => {
-        gameState.round = gameState.round + 1;
-        setGameState(prev => ({
-          ...prev,
-          round: gameState.round
-        }));
-        nextRound();
-      };
-      
-      window.gameGetRound = () => gameState.round;
-      window.gameGetType = () => gameType;
-
-      // Clean and prepare the code
-      const cleanCode = code
-        .replace(/setScore/g, 'gameSetScore')
-        .replace(/nextRound/g, 'gameNextRound')
-        .replace(/getCurrentRound/g, 'gameGetRound')
-        .replace(/getGameType/g, 'gameGetType')
-        .trim();
-
-      // Execute the code
-      (new Function(cleanCode))();
-      
-      // Cleanup
-      delete window.gameSetScore;
-      delete window.gameNextRound;
-      delete window.gameGetRound;
-      delete window.gameGetType;
-
-      console.log("Code executed successfully");
-    } catch (error) {
-      console.error("Error executing code:", error);
-      
-      // Cleanup in case of error
-      delete window.gameSetScore;
-      delete window.gameNextRound;
-      delete window.gameGetRound;
-      delete window.gameGetType;
-    }
-  }, [code]);
+  const eventHandler = (event, code) => {
+    const runCode = new Function('event', code);
+    runCode(event);
+  };
 
   const stopNotifications = async () => {
     if (prevCharacteristicRef.current) {
@@ -210,7 +141,7 @@ export default function GamePage({ gameType }) {
         if (prevCharacteristicRef.current) {
           prevCharacteristicRef.current.removeEventListener(
             "characteristicvaluechanged",
-            handleButtonStateChanged
+            handleAccelerometerDataChanged
           );
           console.log("Notifications stopped and listener removed.");
         }
@@ -255,73 +186,10 @@ export default function GamePage({ gameType }) {
     }
   };
 
-  const handleSensorEvent = (event) => {
-    if (!gameStarted || gameOver || localRound.current !== gameState.round) return;
-
-    switch (gameType) {
-      case 'accelerometer':
-        const accValue = event.target.value;
-        const x = accValue.getInt16(0, true);
-        const y = accValue.getInt16(2, true);
-        const z = accValue.getInt16(4, true);
-        const magnitude = Math.sqrt(x*x + y*y + z*z);
-        
-        if (magnitude > 2000) {
-          updateGameScore();
-        }
-        break;
-
-      case 'magnetometer':
-        const magValue = event.target.value;
-        const magX = magValue.getInt16(0, true);
-        const magY = magValue.getInt16(2, true);
-        const magZ = magValue.getInt16(4, true);
-        const magMagnitude = Math.sqrt(magX*magX + magY*magY + magZ*magZ);
-        
-        if (magMagnitude > 200000) {
-          updateGameScore();
-        }
-        break;
-
-      case 'temperature':
-        const temp = event.target.value.getInt8(0);
-        if (temp > 25) {
-          updateGameScore();
-        }
-        break;
-
-      case 'button':
-        const buttonValue = event.target.value.getUint8(0);
-        if (buttonValue === 1) {
-          updateGameScore();
-        }
-        break;
-
-      case 'lightSensor':
-        const value = new TextDecoder().decode(event.target.value);
-        const lightLevel = parseInt(value.trim(), 10);
-        if (lightLevel > 200) {
-          updateGameScore();
-        }
-        break;
-    }
-  };
-
-  const updateGameScore = () => {
-    gameState.round = gameState.round + 1;
-    setGameState((prev) => ({
-      ...prev,
-      score: prev.score + 1,
-      round: gameState.round,
-    }));
-    nextRound();
-  };
-
   const startNotifications = async (server, gameType) => {
     try {
       await stopNotifications();
-      console.log("Game type:", gameType);
-      
+      console.log("GGame type:", gameType);
       if (gameType === "button") {
         const buttonService = await server.getPrimaryService(
           MicrobitUuid.buttonService[0]
@@ -331,7 +199,7 @@ export default function GamePage({ gameType }) {
           return;
         }
         const buttonCharacteristic = await buttonService.getCharacteristic(
-          getButtonCharacteristic(button)
+          buttonState
         );
         console.log("Button Characteristic:", buttonCharacteristic);
 
@@ -341,29 +209,28 @@ export default function GamePage({ gameType }) {
         );
       }
 
-      if (gameType === "lightSensor") {
-        const uartService = await server.getPrimaryService(
-          MicrobitUuid.uartService[0]
+      if (gameType === "accelerometer") {
+        const accelerometerService = await server.getPrimaryService(
+          MicrobitUuid.accelerometerService[0]
         );
-        if (!uartService) {
-          console.error("UART Service not found");
+        if (!accelerometerService) {
+          console.error("Accelerometer Service not found");
           return;
         }
-        console.log("UART Service:", uartService);
+        console.log("Accelerometer Service:", accelerometerService);
 
-        const uartTxCharacteristic = await uartService.getCharacteristic(
-          MicrobitUuid.uartTxCharacteristic[0]
+        const accelerometerDataCharacteristic =
+          await accelerometerService.getCharacteristic(
+            MicrobitUuid.accelerometerData[0]
+          );
+        console.log(
+          "Accelerometer Data Characteristic:",
+          accelerometerDataCharacteristic
         );
-
-        const uartRxCharacteristic = await uartService.getCharacteristic(
-          MicrobitUuid.uartRxCharacteristic[0]
-        );
-        console.log("UART Tx Characteristic:", uartTxCharacteristic);
-        console.log("UART Rx Characteristic:", uartRxCharacteristic);
 
         await enableNotificationsForService(
-          uartTxCharacteristic,
-          handleUARTTxStateChanged
+          accelerometerDataCharacteristic,
+          handleAccelerometerDataChanged
         );
       }
     } catch (error) {
@@ -416,6 +283,7 @@ export default function GamePage({ gameType }) {
         server,
         services,
       });
+      lastShakeValues.current = { x: 0, y: 0, z: 0 };
 
       await startNotifications(server, gameType);
       console.log("Game started. Random device:", newRandomDevice);
@@ -435,6 +303,11 @@ export default function GamePage({ gameType }) {
       server: null,
       services: null,
     }));
+    rankings.current = [];
+    localRound.current = 1;
+    startTime.current = null;
+    lastShakeValues.current = { x: 0, y: 0, z: 0 };
+    console.log("Game Over!");
     if (previousDeviceRef.current) {
       console.log(
         "Turning off previous device:",
@@ -463,7 +336,6 @@ export default function GamePage({ gameType }) {
     setGameState((prev) => ({
       ...prev,
       timer: timerLength,
-
       randomDevice: newRandomDevice,
       server,
       services,
@@ -493,66 +365,55 @@ export default function GamePage({ gameType }) {
     console.log("Local Round:", localRound.current);
     console.log("Game Round:", gameState.round);
     if (value === 1 && localRound.current === gameState.round) {
-      gameState.round = gameState.round + 1;
-      setGameState((prev) => ({
-        ...prev,
-        score: prev.score + 1,
-        round: gameState.round,
-      }));
-      console.log("Button pressed. About to call next round");
-      nextRound();
+      console.log("ss:", startTime.current);
+      if (startTime.current) {
+        const reactionTime = Date.now() - startTime.current;
+        console.log("Reaction Time:", reactionTime);
+        rankings.current.push(reactionTime);
+        gameState.round = gameState.round + 1;
+        setGameState((prev) => ({
+          ...prev,
+          score: prev.score + 1,
+          round: gameState.round,
+        }));
+        startTime.current = null;
+        console.log("Button pressed. About to call next round");
+        nextRound();
+      }
     }
+  };
+
+  const calculateShake = (x, y, z) => {
+    return Math.abs(x - lastShakeValues.current.x) + Math.abs(y - lastShakeValues.current.y) + Math.abs(z - lastShakeValues.current.z);
   };
 
   const handleAccelerometerDataChanged = (event) => {
-    const value = event.target.value;
-    const x = value.getInt16(0, true);
-    const y = value.getInt16(2, true);
-    const z = value.getInt16(4, true);
+    const data = event.target.value;
+    const x = data.getInt16(0, true);
+    const y = data.getInt16(2, true);
+    const z = data.getInt16(4, true);
     
-    const magnitude = Math.sqrt(x*x + y*y + z*z);
-    if (magnitude > 2000 && localRound.current === gameState.round) {
+    const now = Date.now();
+    const shake = calculateShake(x, y, z);
+    
+    // Only process shake if we're waiting for a reaction
+    if (startTime.current && shake > shakeThreshold && localRound.current === gameState.round) {
+      console.log("Shake detected!");
+      const reactionTime = now - startTime.current;
+      rankings.current.push(reactionTime);
       gameState.round = gameState.round + 1;
-      setGameState((prev) => ({
-        ...prev,
-        score: prev.score + 1,
-        round: gameState.round,
-      }));
-      nextRound();
-    }
-  };
 
-  const handleMagnetometerDataChanged = (event) => {
-    const value = event.target.value;
-    const x = value.getInt16(0, true);
-    const y = value.getInt16(2, true);
-    const z = value.getInt16(4, true);
-    
-    const magnitude = Math.sqrt(x*x + y*y + z*z);
-    if (magnitude > 200000 && localRound.current === gameState.round) {
-      gameState.round = gameState.round + 1;
       setGameState((prev) => ({
         ...prev,
         score: prev.score + 1,
         round: gameState.round,
       }));
+      startTime.current = null;
+      lastShakeValues.current = { x, y, z };
       nextRound();
     }
-  };
-
-  const handleTemperatureChanged = (event) => {
-    const value = event.target.value;
-    const temperature = value.getInt8(0);
     
-    if (temperature > 25 && localRound.current === gameState.round) {
-      gameState.round = gameState.round + 1;
-      setGameState((prev) => ({
-        ...prev,
-        score: prev.score + 1,
-        round: gameState.round,
-      }));
-      nextRound();
-    }
+    lastShakeValues.current = { x, y, z };
   };
 
   const handleUARTTxStateChanged = (event) => {
@@ -566,37 +427,10 @@ export default function GamePage({ gameType }) {
         score: prev.score + 1,
         round: gameState.round,
       }));
-      console.log("Light sensor triggered. About to call next round");
+      console.log("UART lit. About to call next round");
       nextRound();
     }
   };
-
-  useEffect(() => {
-    if (gameStarted && !gameOver) {
-      const countdown =
-        timer > 0
-          ? setInterval(
-              () =>
-                setGameState((prev) => ({ ...prev, timer: prev.timer - 1 })),
-              1000
-            )
-          : null;
-
-      if (timer === 0) {
-        gameState.round = gameState.round + 1;
-        setGameState((prev) => ({
-          ...prev,
-          score: prev.score - 2,
-          round: gameState.round,
-        }));
-        console.log("Timer ran out. About to call next round");
-        nextRound();
-      }
-      return () => {
-        if (countdown) clearInterval(countdown);
-      };
-    }
-  }, [timer, gameStarted, gameOver]);
 
   const handleDeviceState = async () => {
     if (!randomDevice) return;
@@ -609,9 +443,16 @@ export default function GamePage({ gameType }) {
       );
       await turnOffDevice(previousDeviceRef.current.device);
     }
+    const randomTimeout = Math.floor(Math.random() * 5000) + 1000;
+
+    console.log(
+      `Waiting for ${randomTimeout}ms before lighting up the device...`
+    );
+    await new Promise((resolve) => setTimeout(resolve, randomTimeout));
 
     console.log("Lighting up the new device:", randomDevice.device);
     await lightUpDevice(randomDevice.device);
+    startTime.current = Date.now();
     previousDeviceRef.current = randomDevice;
   };
 
@@ -621,20 +462,22 @@ export default function GamePage({ gameType }) {
 
   return (
     <div className="game-container">
-      <h1>
-        {gameType === "button" ? "Button Game" :
-         gameType === "lightSensor" ? "Light Sensor Game" :
-         gameType === "accelerometer" ? "Accelerometer Game" :
-         gameType === "magnetometer" ? "Magnetometer Game" :
-         gameType === "temperature" ? "Temperature Game" :
-         "Sensor Game"}
-      </h1>
+      <h1>Reaction Time</h1>
       <ConnectedDevicesList />
 
       {gameOver ? (
         <div>
           <h3>Game Over!</h3>
-          <p>Final Score: {score}</p>
+          <>
+            <strong>All Time Top 3 Best Times For {gameType} Mode: </strong>
+            <p>
+              {topThreeRankings.current[gameType]
+                .slice(0, 3)
+                .map((time, _) => formatTime(time))
+                .join(", ")}
+            </p>
+          </>
+
           <AnimatedButton onClick={startGame}>Start Game</AnimatedButton>
         </div>
       ) : !gameStarted ? (
@@ -645,19 +488,47 @@ export default function GamePage({ gameType }) {
         <>
           <div className="score-board">
             <p>
-              Round: {round} / {rounds}
+              <strong>Round:</strong> {round} / {rounds}
             </p>
-            <p>Score: {score}</p>
-            <p>Time Remaining: {timer}s</p>
+            {rankings.current.length > 0 && (
+              <>
+                <p>
+                  <strong>Reaction Time:</strong>{" "}
+                  {formatTime(rankings.current[rankings.current.length - 1])}
+                </p>
+                {rankings.current.length > 1 && (
+                  <>
+                    <p>
+                      <strong>Best Time (Round):</strong>{" "}
+                      {formatTime(Math.min(...rankings.current))}
+                    </p>
+                    <p>
+                      <strong>Worst Time (Round):</strong>{" "}
+                      {formatTime(Math.max(...rankings.current))}
+                    </p>
+                    <p>
+                      <strong>Average Time:</strong>{" "}
+                      {formatTime(
+                        rankings.current.reduce((a, b) => a + b, 0) /
+                          rankings.current.length
+                      )}
+                    </p>
+                  </>
+                )}
+              </>
+            )}
           </div>
           <div className="hit-target">
             <p>
-              {gameType === "button" ? `Press Button ${button}` :
-               gameType === "lightSensor" ? "Cover Light Sensor" :
-               gameType === "accelerometer" ? "Shake the Micro:bit" :
-               gameType === "magnetometer" ? "Move Near Magnet" :
-               gameType === "temperature" ? "Warm the Sensor" :
-               "Trigger the Sensor"}
+              {!startTime.current ? (
+                "Wait for the device to light up..."
+              ) : gameType === "button" ? (
+                `Quickly press Button ${button} when the light appears!`
+              ) : gameType === "accelerometer" ? (
+                "Quickly shake the device when the light appears!"
+              ) : (
+                "Get ready..."
+              )}
             </p>
           </div>
         </>

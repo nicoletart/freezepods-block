@@ -2,9 +2,12 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import * as Blockly from "blockly";
-import { javascriptGenerator } from "blockly/javascript";
+import "blockly/python"; // Change this to python
+import { pythonGenerator } from "blockly/python"; // Use the Python generator
 import AnimatedButton from "./AnimatedButton";
 import { useBlocklyContext } from "../context/BlocklyContext";
+import { useDevices } from "../context/ConnectedDevicesContext";
+import { MicrobitHex } from "./MicrobitHex";
 
 const customBlocksSet = new Set();
 
@@ -28,11 +31,14 @@ const getCustomBlocks = () => {
 
   Blockly.Blocks["timer_length"] = {
     init: function () {
-      this.appendDummyInput()
-        .appendField("Set timer expiration to")
-        .appendField(new Blockly.FieldNumber(3, 1, 15), "TIMER");
-      this.setColour(300);
-      this.setTooltip("Set the timer expiration for the game.");
+      this.appendValueInput("TIME")
+        .setCheck("Number")
+        .appendField("Set timer length to");
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour(160);
+      this.setTooltip("Set the timer length");
+      this.setHelpUrl("");
     },
   };
 
@@ -75,63 +81,58 @@ const getCustomBlocks = () => {
     },
   };
 
-  javascriptGenerator["rounds_set"] = function (block) {
+  // Python code generation for blocks
+  pythonGenerator["rounds_set"] = function (block) {
     const rounds = block.getFieldValue("ROUNDS") || 5;
-    return `let rounds = ${rounds};\n`;
-  };
-  
-  javascriptGenerator["timer_length"] = function (block) {
-    const timer = block.getFieldValue("TIMER");
-    return `let timerLength = ${timer};\n`;
-  };
-  
-  javascriptGenerator["choose_button"] = function (block) {
-    const button = block.getFieldValue("BUTTON");
-    return `let chosenButton = "${button}";\n`;
-  };
-  
-  // Score variable handling
-  javascriptGenerator["score_variable"] = function (block) {
-    const scoreVar = block.getFieldValue("SCORE");
-    return `let ${scoreVar} = 0;\n`;
+    return `rounds = ${rounds}\n`;
   };
 
-  javascriptGenerator["game_logic"] = function (block) {
+  pythonGenerator.forBlock["timer_length"] = function (block) {
+    const time = pythonGenerator.valueToCode(block, "TIME", pythonGenerator.ORDER_ATOMIC);
+    return `time = ${time}\n`;
+  };
+
+  pythonGenerator.forBlock["choose_button"] = function (block) {
+    const button = block.getFieldValue("BUTTON");
+    return `chosen_button = "${button}"\n`;
+  };
+
+  // Score variable handling
+  pythonGenerator.forBlock["score_variable"] = function (block) {
+    const scoreVar = block.getFieldValue("SCORE");
+    return `score = 0\n`; // Always initialize score to 0 in Python
+  };
+
+  pythonGenerator.forBlock["game_logic"] = function (block) {
     const rounds = block.getFieldValue("ROUND");
     const timer = block.getFieldValue("TIMER");
-  
-    return `
-      let rounds = ${rounds};
-      let timerLength = ${timer};
-      
-      for (let round = 0; round < rounds; round++) {
-        basic.showString("Round " + (round + 1));
-        let startTime = input.runningTime();
-        
-        // Wait for the timer
-        while (input.runningTime() - startTime < timerLength * 1000) {
-          // Check for button press
-          if (input.buttonIsPressed(Button.A)) {
-            if (chosenButton === "A") {
-              score++;
-              basic.showIcon(IconNames.Happy);
-            }
-          } else if (input.buttonIsPressed(Button.B)) {
-            if (chosenButton === "B") {
-              score++;
-              basic.showIcon(IconNames.Happy);
-            }
-          }
-        }
-        
-        // Show score after each round
-        basic.showNumber(score);
-        basic.pause(1000); // Wait for 1 second before next round
-      }
+
+    const code = `
+rounds = ${rounds}
+timer_length = ${timer}
+score = 0
+chosen_button = "A"  # Example of setting the button
+
+for round in range(rounds):
+    display.show(f"Round {round + 1}")
+    start_time = running_time()
+
+    while running_time() - start_time < timer_length * 1000:
+        if button_a.is_pressed():
+            if chosen_button == "A":
+                score += 1
+                display.show(Image.HAPPY)
+        elif button_b.is_pressed():
+            if chosen_button == "B":
+                score += 1
+                display.show(Image.HAPPY)
+
+    display.show(score)
+    sleep(1000)  # Wait for 1 second before next round
     `;
+    console.log(code);
+    return code;
   };
-  
-  
 
   customBlocksSet.add("rounds_set");
   customBlocksSet.add("timer_length");
@@ -140,16 +141,12 @@ const getCustomBlocks = () => {
   customBlocksSet.add("game_logic");
 };
 
-export default function BlocklyComponent() {
+export default function BlocklyPython() {
+  const { devices } = useDevices();
   const { setRounds, setTimerLength, setButton } = useBlocklyContext();
   const blocklyDiv = useRef(null);
   const workspaceRef = useRef(null);
-  const [generatedCode, setGeneratedCode] = useState("");
   const [savedInformation, setSavedInformation] = useState("");
-  const [customBlocks, setCustomBlocks] = useState([
-    "rounds_set",
-    "timer_length",
-  ]);
 
   useEffect(() => {
     getCustomBlocks();
@@ -201,21 +198,78 @@ export default function BlocklyComponent() {
     }
   }, []);
 
-  // const handleGenerateCode = () => {
-  //   console.log("Generating code from workspace...");
-  //   const workspace = workspaceRef.current;
+  const handleRunCode = () => {
+    const code = convertToPython();  // Change this to convert to Python
+    if (code) {
+      console.log("Running code...");
+      compileToHex(code) // Call the function to compile the Python code to .hex
+        .then(() => {
+          console.log("Hex file generated and ready to download.");
+        })
+        .catch((error) => {
+          console.error("Failed to compile to hex:", error);
+        });
+    }
+  };
 
-  //   if (workspace) {
-  //     try {
-  //       const code = javascriptGenerator.workspaceToCode(workspace);
-  //       setGeneratedCode(code);
-  //     } catch (error) {
-  //       console.error("Error while generating JavaScript code:", error);
-  //     }
-  //   } else {
-  //     console.error("No Blockly workspace found.");
-  //   }
-  // };
+  const convertToPython = () => {
+    const workspace = workspaceRef.current;
+    if (workspace) {
+      console.log("Workspace:", workspace);
+      const code = pythonGenerator.workspaceToCode(workspace);  // Use Python generator
+      console.log(code);
+      return code;
+    } else {
+      console.error("No Blockly workspace");
+      return "";
+    }
+  };
+
+  async function compileToHex(code) {
+    try {
+      console.log(code, JSON.stringify({ code }));
+      const response = await fetch('/api/compile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code }), // Send the Python code for compilation
+      });
+  
+      const data = await response.json();
+      console.log(data);
+      if (data.hex) {
+        console.log('Hex file generated:', data.hex);
+        // Handle the downloaded .hex file (e.g., trigger a download, etc.)
+      } else {
+        console.error('Compilation error:', data.error);
+      }
+    } catch (error) {
+      console.error('Error during compilation:', error);
+    }
+  }
+
+  const uploadToMicrobits = async (hexFile) => {
+    const fileData = new Uint8Array(Buffer.from(hexFile, "hex"));
+
+    for (const device of devices) {
+      try {
+        const server = await device.gatt.connect();
+        const service = await server.getPrimaryService(
+          MicrobitUuid.uartService[0]
+        );
+        const characteristic = await service.getCharacteristic(
+          MicrobitUuid.uartCharacteristic[0]
+        );
+
+        await characteristic.writeValue(fileData);
+        console.log(`Uploaded to ${device.name}`);
+      } catch (error) {
+        console.error(`Failed to upload to ${device.name}:`, error);
+      }
+    }
+    alert("Code uploaded to all connected micro:bits!");
+  };
 
   const resetWorkspace = () => {
     console.log("Clearing Blockly workspace");
@@ -223,7 +277,6 @@ export default function BlocklyComponent() {
 
     if (workspace) {
       workspace.clear();
-      // setGeneratedCode("");
       setSavedInformation("");
     } else {
       console.error("No Blockly workspace");
@@ -267,7 +320,7 @@ export default function BlocklyComponent() {
         info += `Timer length set to ${timerValue}.\n`;
       }
       if (buttonBlock) {
-        info += `Button selected: ${buttonValue}`;
+        info += `Button choice set to ${buttonValue}.\n`;
       }
       setSavedInformation(info);
     } else {
@@ -276,64 +329,12 @@ export default function BlocklyComponent() {
   };
 
   return (
-    <div
-      style={{
-        height: "100%",
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "20px",
-      }}
-    >
-      <div
-        ref={blocklyDiv}
-        style={{
-          height: "500px",
-          width: "800px",
-        }}
-      ></div>
-
-      <div style={{ display: "flex", gap: "20px" }}>
-        {/* <AnimatedButton onClick={handleGenerateCode}>
-          Generate Code
-        </AnimatedButton> */}
-        <AnimatedButton onClick={resetWorkspace}>
-          Clear Workspace
-        </AnimatedButton>
-        <AnimatedButton onClick={saveWorkspace}>Save Workspace</AnimatedButton>
+    <div>
+      <div ref={blocklyDiv} style={{ height: "500px" }} />
+      <div>
+        <AnimatedButton onClick={handleRunCode}>Run Python Code</AnimatedButton>
       </div>
-
-      {generatedCode && (
-        <pre
-          style={{
-            backgroundColor: "grey",
-            padding: "10px",
-            borderRadius: "5px",
-            maxWidth: "800px",
-            margin: "20px",
-            overflow: "auto",
-          }}
-        >
-          {generatedCode}
-        </pre>
-      )}
-
-      {savedInformation && (
-        <pre
-          style={{
-            backgroundColor: "grey",
-            padding: "5px",
-            borderRadius: "5px",
-            maxWidth: "800px",
-            margin: "20px",
-            overflow: "auto",
-          }}
-        >
-          {savedInformation}
-        </pre>
-      )}
+      <MicrobitHex hexFile={savedInformation} />
     </div>
   );
 }

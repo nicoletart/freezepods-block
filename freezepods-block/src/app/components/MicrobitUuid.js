@@ -110,11 +110,11 @@ export const MicrobitUuid = {
     "e95d1b25-251d-470a-a062-fa1922dfa9a8",
     "Temperature Period",
   ],
-  txCharacteristic: [
+  uartTxCharacteristic: [
     "6e400002-b5a3-f393-e0a9-e50e24dcca9e",
     "Tx Characteristic",
   ],
-  rxCharacteristic: [
+  uartRxCharacteristic: [
     "6e400003-b5a3-f393-e0a9-e50e24dcca9e",
     "Rx Characteristic",
   ],
