@@ -1,16 +1,14 @@
 "use client";
 import React, { createContext, useState, useContext, useEffect } from "react";
 
-// Function to handle client-side localStorage
 const getStoredValue = (key, defaultValue) => {
-  if (typeof window !== "undefined") {  // Ensure code only runs in the browser
+  if (typeof window !== "undefined") {
     const storedValue = localStorage.getItem(key);
-    if (storedValue === null) return defaultValue;  // No value in localStorage, return default
+    if (storedValue === null) return defaultValue;
 
     try {
-      return JSON.parse(storedValue);  // Try parsing the stored value
+      return JSON.parse(storedValue);
     } catch (e) {
-      // If parsing fails, return the raw value (for strings/numbers)
       return storedValue;
     }
   }
@@ -20,34 +18,52 @@ const getStoredValue = (key, defaultValue) => {
 const BlocklyContext = createContext();
 
 export const BlocklyProvider = ({ children }) => {
-  const [rounds, setRounds] = useState(5);  // Default 5 rounds
-  const [timerLength, setTimerLength] = useState(5);  // Default 5 seconds
-  const [button, setButton] = useState("A");  // Default button A
-  const [code, setCode] = useState("");  // Default empty code
+  const [rounds, setRounds] = useState(5);
+  const [timerLength, setTimerLength] = useState(5);
+  const [button, setButton] = useState("A");
+  const [code, setCode] = useState("");
+  const [sensorThresholds, setSensorThresholds] = useState({
+    accelerometer: 2000,
+    lightSensor: 200,
+    temperature: 25,
+    magnetometer: 200000,
+  });
+  const [scoreIncrement, setScoreIncrement] = useState(1);
 
-  // This effect runs only once after the component is mounted in the browser
   useEffect(() => {
     const storedRounds = getStoredValue("rounds", 5);
     const storedTimerLength = getStoredValue("timerLength", 5);
     const storedButton = getStoredValue("button", "A");
+    const storedThresholds = getStoredValue("sensorThresholds", {
+      accelerometer: 2000,
+      lightSensor: 200,
+      temperature: 25,
+      magnetometer: 200000,
+    });
+    const storedScoreIncrement = getStoredValue("scoreIncrement", 1);
     const code = getStoredValue("code", "");
 
     setRounds(storedRounds);
     setTimerLength(storedTimerLength);
     setButton(storedButton);
+    setSensorThresholds(storedThresholds);
+    setScoreIncrement(storedScoreIncrement);
     setCode(code);
-    console.log("new code", code);
-  }, []); // Empty dependency array ensures it only runs on mount
+  }, []);
 
-  // Sync with localStorage whenever the values change
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("rounds", JSON.stringify(rounds));
       localStorage.setItem("timerLength", JSON.stringify(timerLength));
       localStorage.setItem("button", JSON.stringify(button));
+      localStorage.setItem(
+        "sensorThresholds",
+        JSON.stringify(sensorThresholds)
+      );
+      localStorage.setItem("scoreIncrement", JSON.stringify(scoreIncrement));
       localStorage.setItem("code", JSON.stringify(code));
     }
-  }, [rounds, timerLength, button]);
+  }, [rounds, timerLength, button, sensorThresholds, scoreIncrement, code]);
 
   return (
     <BlocklyContext.Provider
@@ -60,6 +76,10 @@ export const BlocklyProvider = ({ children }) => {
         setButton,
         code,
         setCode,
+        sensorThresholds,
+        setSensorThresholds,
+        scoreIncrement,
+        setScoreIncrement,
       }}
     >
       {children}

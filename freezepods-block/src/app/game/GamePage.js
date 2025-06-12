@@ -14,9 +14,9 @@ import { useBlocklyContext } from "../context/BlocklyContext";
 
 const getButtonCharacteristic = (buttonType) => {
   switch (buttonType) {
-    case 'A':
+    case "A":
       return MicrobitUuid.buttonAState[0];
-    case 'B':
+    case "B":
       return MicrobitUuid.buttonBState[0];
     default:
       return MicrobitUuid.buttonAState[0];
@@ -25,15 +25,17 @@ const getButtonCharacteristic = (buttonType) => {
 
 const getSensorCharacteristic = (sensorType, button = null) => {
   switch (sensorType) {
-    case 'button':
-      return button === "B" ? MicrobitUuid.buttonBState[0] : MicrobitUuid.buttonAState[0];
-    case 'accelerometer':
+    case "button":
+      return button === "B"
+        ? MicrobitUuid.buttonBState[0]
+        : MicrobitUuid.buttonAState[0];
+    case "accelerometer":
       return MicrobitUuid.accelerometerData[0];
-    case 'magnetometer':
+    case "magnetometer":
       return MicrobitUuid.magnetometerData[0];
-    case 'temperature':
+    case "temperature":
       return MicrobitUuid.temperature[0];
-    case 'lightSensor':
+    case "lightSensor":
       return MicrobitUuid.uartTxCharacteristic[0];
     default:
       return MicrobitUuid.buttonAState[0];
@@ -42,15 +44,15 @@ const getSensorCharacteristic = (sensorType, button = null) => {
 
 const getSensorService = (sensorType) => {
   switch (sensorType) {
-    case 'button':
+    case "button":
       return MicrobitUuid.buttonService[0];
-    case 'accelerometer':
+    case "accelerometer":
       return MicrobitUuid.accelerometerService[0];
-    case 'magnetometer':
+    case "magnetometer":
       return MicrobitUuid.magnetometerService[0];
-    case 'temperature':
+    case "temperature":
       return MicrobitUuid.temperatureService[0];
-    case 'lightSensor':
+    case "lightSensor":
       return MicrobitUuid.uartService[0];
     default:
       return MicrobitUuid.buttonService[0];
@@ -63,19 +65,19 @@ const getHandlerForSensor = (sensorType, handlers) => {
     handleAccelerometerDataChanged,
     handleMagnetometerDataChanged,
     handleTemperatureChanged,
-    handleUARTTxStateChanged
+    handleUARTTxStateChanged,
   } = handlers;
 
   switch (sensorType) {
-    case 'button':
+    case "button":
       return handleButtonStateChanged;
-    case 'accelerometer':
+    case "accelerometer":
       return handleAccelerometerDataChanged;
-    case 'magnetometer':
+    case "magnetometer":
       return handleMagnetometerDataChanged;
-    case 'temperature':
+    case "temperature":
       return handleTemperatureChanged;
-    case 'lightSensor':
+    case "lightSensor":
       return handleUARTTxStateChanged;
     default:
       return handleButtonStateChanged;
@@ -153,50 +155,67 @@ export default function GamePage({ gameType }) {
     try {
       if (!code) return;
 
-      // Create game functions in global scope
-      window.gameSetScore = (score) => {
-        setGameState(prev => ({...prev, score}));
+      const thresholds = {
+        accelerometer:
+          code.match(/getaccelerometerValue\(\)\s*>=\s*(\d+)/)?.[1] || 2000,
+        lightSensor: code.match(/getLightLevel\(\)\s*>\s*(\d+)/)?.[1] || 200,
+        temperature: code.match(/getTemperature\(\)\s*>\s*(\d+)/)?.[1] || 25,
+        magnetometer:
+          code.match(/getMagnetometerValue\(\)\s*>\s*(\d+)/)?.[1] || 200000,
       };
-      
+
+      const scoreIncrement =
+        code.match(/gameSetScore\(gameGetScore\(\)\s*\+\s*(\d+)\)/)?.[1] || 1;
+
+      window.gameConfig = {
+        thresholds,
+        scoreIncrement: parseInt(scoreIncrement),
+        rounds,
+        timerLength,
+        gameType,
+      };
+
+      window.gameSetScore = (score) => {
+        setGameState((prev) => ({ ...prev, score }));
+      };
+
       window.gameNextRound = () => {
         gameState.round = gameState.round + 1;
-        setGameState(prev => ({
+        setGameState((prev) => ({
           ...prev,
-          round: gameState.round
+          round: gameState.round,
         }));
         nextRound();
       };
-      
+
       window.gameGetRound = () => gameState.round;
       window.gameGetType = () => gameType;
 
-      // Clean and prepare the code
-      const cleanCode = code
-        .replace(/setScore/g, 'gameSetScore')
-        .replace(/nextRound/g, 'gameNextRound')
-        .replace(/getCurrentRound/g, 'gameGetRound')
-        .replace(/getGameType/g, 'gameGetType')
-        .trim();
-
-      // Execute the code
-      (new Function(cleanCode))();
-      
-      // Cleanup
-      delete window.gameSetScore;
-      delete window.gameNextRound;
-      delete window.gameGetRound;
-      delete window.gameGetType;
-
-      console.log("Code executed successfully");
+      console.log("Game configuration set successfully", window.gameConfig);
     } catch (error) {
-      console.error("Error executing code:", error);
-      
-      // Cleanup in case of error
+      console.error("Error parsing game configuration:", error);
+
+      window.gameConfig = {
+        thresholds: {
+          accelerometer: 2000,
+          lightSensor: 200,
+          temperature: 25,
+          magnetometer: 200000,
+        },
+        scoreIncrement: 1,
+        rounds,
+        timerLength,
+        gameType,
+      };
+    }
+
+    return () => {
       delete window.gameSetScore;
       delete window.gameNextRound;
       delete window.gameGetRound;
       delete window.gameGetType;
-    }
+      delete window.gameConfig;
+    };
   }, [code]);
 
   const stopNotifications = async () => {
@@ -256,54 +275,62 @@ export default function GamePage({ gameType }) {
   };
 
   const handleSensorEvent = (event) => {
-    if (!gameStarted || gameOver || localRound.current !== gameState.round) return;
+    if (
+      !gameStarted ||
+      gameOver ||
+      localRound.current !== gameState.round ||
+      !window.gameConfig
+    )
+      return;
+
+    const config = window.gameConfig;
+    let thresholdMet = false;
 
     switch (gameType) {
-      case 'accelerometer':
+      case "accelerometer": {
         const accValue = event.target.value;
         const x = accValue.getInt16(0, true);
         const y = accValue.getInt16(2, true);
         const z = accValue.getInt16(4, true);
-        const magnitude = Math.sqrt(x*x + y*y + z*z);
-        
-        if (magnitude > 2000) {
-          updateGameScore();
-        }
+        const magnitude = Math.sqrt(x * x + y * y + z * z);
+        thresholdMet = magnitude > config.thresholds.accelerometer;
         break;
-
-      case 'magnetometer':
+      }
+      case "magnetometer": {
         const magValue = event.target.value;
         const magX = magValue.getInt16(0, true);
         const magY = magValue.getInt16(2, true);
         const magZ = magValue.getInt16(4, true);
-        const magMagnitude = Math.sqrt(magX*magX + magY*magY + magZ*magZ);
-        
-        if (magMagnitude > 200000) {
-          updateGameScore();
-        }
+        const magMagnitude = Math.sqrt(magX * magX + magY * magY + magZ * magZ);
+        thresholdMet = magMagnitude > config.thresholds.magnetometer;
         break;
-
-      case 'temperature':
+      }
+      case "temperature": {
         const temp = event.target.value.getInt8(0);
-        if (temp > 25) {
-          updateGameScore();
-        }
+        thresholdMet = temp > config.thresholds.temperature;
         break;
-
-      case 'button':
+      }
+      case "button": {
         const buttonValue = event.target.value.getUint8(0);
-        if (buttonValue === 1) {
-          updateGameScore();
-        }
+        thresholdMet = buttonValue === 1;
         break;
-
-      case 'lightSensor':
+      }
+      case "lightSensor": {
         const value = new TextDecoder().decode(event.target.value);
         const lightLevel = parseInt(value.trim(), 10);
-        if (lightLevel > 200) {
-          updateGameScore();
-        }
+        thresholdMet = lightLevel > config.thresholds.lightSensor;
         break;
+      }
+    }
+
+    if (thresholdMet) {
+      gameState.round = gameState.round + 1;
+      setGameState((prev) => ({
+        ...prev,
+        score: prev.score + config.scoreIncrement,
+        round: gameState.round,
+      }));
+      nextRound();
     }
   };
 
@@ -321,7 +348,7 @@ export default function GamePage({ gameType }) {
     try {
       await stopNotifications();
       console.log("Game type:", gameType);
-      
+
       if (gameType === "button") {
         const buttonService = await server.getPrimaryService(
           MicrobitUuid.buttonService[0]
@@ -509,8 +536,8 @@ export default function GamePage({ gameType }) {
     const x = value.getInt16(0, true);
     const y = value.getInt16(2, true);
     const z = value.getInt16(4, true);
-    
-    const magnitude = Math.sqrt(x*x + y*y + z*z);
+
+    const magnitude = Math.sqrt(x * x + y * y + z * z);
     if (magnitude > 2000 && localRound.current === gameState.round) {
       gameState.round = gameState.round + 1;
       setGameState((prev) => ({
@@ -527,8 +554,8 @@ export default function GamePage({ gameType }) {
     const x = value.getInt16(0, true);
     const y = value.getInt16(2, true);
     const z = value.getInt16(4, true);
-    
-    const magnitude = Math.sqrt(x*x + y*y + z*z);
+
+    const magnitude = Math.sqrt(x * x + y * y + z * z);
     if (magnitude > 200000 && localRound.current === gameState.round) {
       gameState.round = gameState.round + 1;
       setGameState((prev) => ({
@@ -543,7 +570,7 @@ export default function GamePage({ gameType }) {
   const handleTemperatureChanged = (event) => {
     const value = event.target.value;
     const temperature = value.getInt8(0);
-    
+
     if (temperature > 25 && localRound.current === gameState.round) {
       gameState.round = gameState.round + 1;
       setGameState((prev) => ({
@@ -622,12 +649,17 @@ export default function GamePage({ gameType }) {
   return (
     <div className="game-container">
       <h1>
-        {gameType === "button" ? "Button Game" :
-         gameType === "lightSensor" ? "Light Sensor Game" :
-         gameType === "accelerometer" ? "Accelerometer Game" :
-         gameType === "magnetometer" ? "Magnetometer Game" :
-         gameType === "temperature" ? "Temperature Game" :
-         "Sensor Game"}
+        {gameType === "button"
+          ? "Button Game"
+          : gameType === "lightSensor"
+          ? "Light Sensor Game"
+          : gameType === "accelerometer"
+          ? "Accelerometer Game"
+          : gameType === "magnetometer"
+          ? "Magnetometer Game"
+          : gameType === "temperature"
+          ? "Temperature Game"
+          : "Sensor Game"}
       </h1>
       <ConnectedDevicesList />
 
@@ -652,12 +684,17 @@ export default function GamePage({ gameType }) {
           </div>
           <div className="hit-target">
             <p>
-              {gameType === "button" ? `Press Button ${button}` :
-               gameType === "lightSensor" ? "Cover Light Sensor" :
-               gameType === "accelerometer" ? "Shake the Micro:bit" :
-               gameType === "magnetometer" ? "Move Near Magnet" :
-               gameType === "temperature" ? "Warm the Sensor" :
-               "Trigger the Sensor"}
+              {gameType === "button"
+                ? `Press Button ${button}`
+                : gameType === "lightSensor"
+                ? "Cover Light Sensor"
+                : gameType === "accelerometer"
+                ? "Shake the Micro:bit"
+                : gameType === "magnetometer"
+                ? "Move Near Magnet"
+                : gameType === "temperature"
+                ? "Warm the Sensor"
+                : "Trigger the Sensor"}
             </p>
           </div>
         </>

@@ -19,35 +19,14 @@ const getCustomBlocks = () => {
     return;
   }
 
-  // Blockly.Blocks['create_variable'] = {
-  //   init: function() {
-  //     this.appendDummyInput()  // Use this to define the block's text fields
-  //       .appendField("Create variable")
-  //       .appendField(new Blockly.FieldTextInput('var_name'), 'VAR_NAME')  // User-defined variable name
-  //       .appendField("to set to");
-
-  //     this.appendValueInput('VALUE')  // Input for setting the variable's value
-  //       .setCheck(null)  // No specific type check here
-  //       .appendField('set to');
-
-  //     this.setColour(230);  // Color of the block
-  //     this.setOutput(true, 'Variable');  // Set this block as an output block
-  //     this.setTooltip("Create a variable and assign a value.");  // Tooltip text for the block
-  //   }
-  // }
-
   Blockly.Blocks["create_variable"] = {
     init: function () {
-      // Define the function to specify the handler function name
       this.appendDummyInput()
         .appendField("Create variable")
-        .appendField(new Blockly.FieldTextInput("var_name"), "VARIABLE_NAME"); // User-defined variable name
+        .appendField(new Blockly.FieldTextInput("var_name"), "VARIABLE_NAME");
 
-      this.appendValueInput("VALUE")
-        .setCheck(null) // Define the type (number or string)
-        .appendField("set to");
+      this.appendValueInput("VALUE").setCheck(null).appendField("set to");
 
-      // Block color and tooltip
       this.setColour(230);
       this.setTooltip("Define a handler function for a selected sensor event.");
       this.setPreviousStatement(true);
@@ -56,17 +35,14 @@ const getCustomBlocks = () => {
   };
 
   javascriptGenerator.forBlock["create_variable"] = function (block) {
-    // Get the variable name input by the user
     const variableName = block.getFieldValue("VARIABLE_NAME");
 
-    // Get the value for the variable
     const value = javascriptGenerator.valueToCode(
       block,
       "VALUE",
       javascriptGenerator.ORDER_ATOMIC
     );
 
-    // Generate JavaScript code that defines the variable and assigns a value
     return `let ${variableName} = ${value};\n`;
   };
 
@@ -74,12 +50,10 @@ const getCustomBlocks = () => {
 
   Blockly.Blocks["define_event_handler"] = {
     init: function () {
-      // Define the function to specify the handler function name
       this.appendDummyInput()
         .appendField("Define Event Handler Function")
         .appendField(new Blockly.FieldTextInput(""), "HANDLER_NAME");
 
-      // Dropdown for selecting the sensor type
       this.appendDummyInput()
         .appendField("Sensor Type:")
         .appendField(
@@ -92,7 +66,6 @@ const getCustomBlocks = () => {
           "SENSOR_TYPE"
         );
 
-      // Block color and tooltip
       this.setColour(230);
       this.setTooltip("Define a handler function for a selected sensor event.");
       this.setNextStatement(true);
@@ -100,16 +73,13 @@ const getCustomBlocks = () => {
   };
 
   javascriptGenerator.forBlock["define_event_handler"] = function (block) {
-    // Get the function name input by the user
     const handlerName = block.getFieldValue("HANDLER_NAME");
 
-    // Get the sensor type selected by the user from the dropdown
     const sensorType = block.getFieldValue("SENSOR_TYPE");
 
-    // Generate JavaScript code that defines the event handler for the selected sensor type
     return `
       const ${handlerName} = (event) => {
-        // Check if the event matches the selected sensor type
+        
         if (gameType != "${sensorType}") {
           console.error("Mismatched sensor type. Expected: ${sensorType}, but got: " + gameType);
           return;
@@ -126,8 +96,8 @@ const getCustomBlocks = () => {
       this.setTooltip(
         "Extracts X, Y, Z values from the accelerometer sensor data."
       );
-      this.setPreviousStatement(true); // Allow this block to connect to the previous one
-      this.setNextStatement(true); // Allow this block to connect to the next one
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
     },
   };
 
@@ -144,8 +114,8 @@ const getCustomBlocks = () => {
       );
       this.setColour(230);
       this.setTooltip("Shake detected in the accelerometer sensor data");
-      this.setPreviousStatement(true); // Allow this block to connect to the previous one
-      this.setNextStatement(true); // Allow this block to connect to the next one
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
     },
   };
 
@@ -259,13 +229,12 @@ const getCustomBlocks = () => {
   };
 
   javascriptGenerator.forBlock["timer_length"] = function (block) {
-    // Get the value from the input field for "TIME"
     var time = javascriptGenerator.valueToCode(
       block,
       "TIME",
       javascriptGenerator.ORDER_ATOMIC
     );
-    return `const timerLength = ${time};\n`; // Use the time value in the generated code
+    return `const timerLength = ${time};\n`;
   };
 
   javascriptGenerator.forBlock["choose_button"] = function (block) {
@@ -273,7 +242,6 @@ const getCustomBlocks = () => {
     return `const button = "${button}";\n`;
   };
 
-  // Score variable handling
   javascriptGenerator.forBlock["score_variable"] = function (block) {
     const scoreVar = block.getFieldValue("SCORE");
     return `let ${scoreVar} = 0;\n`;
@@ -283,20 +251,19 @@ const getCustomBlocks = () => {
     const rounds = block.getFieldValue("ROUND");
     const timer = block.getFieldValue("TIMER");
 
-    // Generate JavaScript code for the block
     const code = `
     let rounds = ${rounds};
     let timerLength = ${timer};
     let score = 0;
-    let chosenButton = "A"; // Example of setting the button
+    let chosenButton = "A"; 
 
     for (let round = 0; round < rounds; round++) {
       basic.showString("Round " + (round + 1));
       let startTime = input.runningTime();
 
-      // Wait for the timer
+      
       while (input.runningTime() - startTime < timerLength * 1000) {
-        // Check for button press
+        
         if (input.buttonIsPressed(Button.A)) {
           if (chosenButton === "A") {
             score++;
@@ -310,9 +277,9 @@ const getCustomBlocks = () => {
         }
       }
 
-      // Show score after each round
+      
       basic.showNumber(score);
-      basic.pause(1000); // Wait for 1 second before next round
+      basic.pause(1000); 
     }
   `;
     console.log(code);
@@ -336,7 +303,7 @@ const getCustomBlocks = () => {
     init: function () {
       this.appendDummyInput().appendField("When game starts");
       this.appendStatementInput("DO").setCheck(null).appendField("do");
-      this.setColour(230); // Choose a color for your block
+      this.setColour(230);
       this.setPreviousStatement(false, null);
       this.setNextStatement(false, null);
       this.setTooltip("Triggers when the game starts");
@@ -370,7 +337,7 @@ const getCustomBlocks = () => {
             ["Light Sensor", "lightSensor"],
             ["Accelerometer", "accelerometer"],
             ["Magnetometer", "magnetometer"],
-            ["Temperature", "temperature"]
+            ["Temperature", "temperature"],
           ]),
           "SENSOR"
         );
@@ -390,14 +357,16 @@ const getCustomBlocks = () => {
             ["Accelerometer (shake)", "accelerometer"],
             ["Magnetometer (magnetic field)", "magnetometer"],
             ["Temperature (°C)", "temperature"],
-            ["Light Level", "lightSensor"]
+            ["Light Level", "lightSensor"],
           ]),
           "SENSOR"
         )
         .appendField("to")
         .appendField(new Blockly.FieldNumber(0), "THRESHOLD");
       this.setColour(160);
-      this.setTooltip("Set the threshold value that triggers a point in the game.");
+      this.setTooltip(
+        "Set the threshold value that triggers a point in the game."
+      );
       this.setPreviousStatement(true);
       this.setNextStatement(true);
     },
@@ -413,13 +382,11 @@ const getCustomBlocks = () => {
             ["Light is covered", "lightSensor"],
             ["Device is shaken", "accelerometer"],
             ["Magnetic field detected", "magnetometer"],
-            ["Temperature reached", "temperature"]
+            ["Temperature reached", "temperature"],
           ]),
           "EVENT"
         );
-      this.appendStatementInput("DO")
-        .setCheck(null)
-        .appendField("do");
+      this.appendStatementInput("DO").setCheck(null).appendField("do");
       this.setColour(230);
       this.setTooltip("Triggers when the selected sensor event occurs.");
       this.setPreviousStatement(true);
@@ -436,7 +403,7 @@ const getCustomBlocks = () => {
             ["Accelerometer", "accelerometer"],
             ["Magnetometer", "magnetometer"],
             ["Temperature", "temperature"],
-            ["Light Sensor", "lightSensor"]
+            ["Light Sensor", "lightSensor"],
           ]),
           "SENSOR"
         );
@@ -476,11 +443,82 @@ const getCustomBlocks = () => {
   customBlocksSet.add("set_sensor_threshold");
   customBlocksSet.add("sensor_event");
   customBlocksSet.add("get_sensor_value");
+
+  Blockly.Blocks["add_to_score"] = {
+    init: function () {
+      this.appendValueInput("POINTS")
+        .setCheck("Number")
+        .appendField("Add to score");
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour(230);
+      this.setTooltip("Add points to the current score");
+    },
+  };
+
+  javascriptGenerator.forBlock["add_to_score"] = function (block) {
+    const points =
+      javascriptGenerator.valueToCode(
+        block,
+        "POINTS",
+        javascriptGenerator.ORDER_ATOMIC
+      ) || "1";
+    return `gameSetScore(gameGetScore() + ${points});\n`;
+  };
+
+  customBlocksSet.add("add_to_score");
+
+  const toolboxXml = `
+    <xml xmlns="https:
+      <category name="Game Setup" colour="160">
+        <block type="rounds_set"></block>
+        <block type="timer_length"></block>
+        <block type="choose_button"></block>
+        <block type="choose_sensor"></block>
+        <block type="set_sensor_threshold"></block>
+      </category>
+      <category name="Game Actions" colour="230">
+        <block type="add_to_score"></block>
+      </category>
+      <category name="Sensors" colour="230">
+        <block type="sensor_event"></block>
+        <block type="get_sensor_value"></block>
+        <block type="get_accelerometer_xyz"></block>
+        <block type="shake_detected"></block>
+        <block type="calculate_accelerometer_movement"></block>
+      </category>
+      <category name="Logic" colour="210">
+        <block type="controls_if"></block>
+        <block type="logic_compare"></block>
+        <block type="logic_operation"></block>
+        <block type="logic_negate"></block>
+        <block type="logic_boolean"></block>
+      </category>
+      <category name="Loops" colour="120">
+        <block type="controls_repeat_ext"></block>
+        <block type="controls_whileUntil"></block>
+        <block type="controls_for"></block>
+      </category>
+      <category name="Math" colour="230">
+        <block type="math_number"></block>
+        <block type="math_arithmetic"></block>
+        <block type="math_single"></block>
+      </category>
+      <category name="Variables" colour="330" custom="VARIABLE"></category>
+    </xml>
+  `;
 };
 
 export default function BlocklyEditor() {
   const { devices } = useDevices();
-  const { setRounds, setTimerLength, setButton, setCode } = useBlocklyContext();
+  const {
+    setRounds,
+    setTimerLength,
+    setButton,
+    setCode,
+    setSensorThresholds,
+    setScoreIncrement,
+  } = useBlocklyContext();
   const blocklyDiv = useRef(null);
   const workspaceRef = useRef(null);
   const [savedInformation, setSavedInformation] = useState("");
@@ -491,13 +529,16 @@ export default function BlocklyEditor() {
     if (blocklyDiv.current) {
       console.log("Injecting Blockly workspace...");
       const toolboxXml = `
-        <xml xmlns="https://developers.google.com/blockly/xml">
+        <xml xmlns="https:
           <category name="Game Setup" colour="160">
             <block type="rounds_set"></block>
             <block type="timer_length"></block>
             <block type="choose_button"></block>
             <block type="choose_sensor"></block>
             <block type="set_sensor_threshold"></block>
+          </category>
+          <category name="Game Actions" colour="230">
+            <block type="add_to_score"></block>
           </category>
           <category name="Sensors" colour="230">
             <block type="sensor_event"></block>
@@ -561,13 +602,6 @@ export default function BlocklyEditor() {
     const code = convertToJavaScript();
     if (code) {
       console.log(code);
-      // compileToHex(code) // Call the function to compile the JS code to .hex
-      //   .then(() => {
-      //     console.log("Hex file generated and ready to download.");
-      //   })
-      //   .catch((error) => {
-      //     console.error("Failed to compile to hex:", error);
-      //   });
     }
   };
 
@@ -575,33 +609,35 @@ export default function BlocklyEditor() {
     const workspace = workspaceRef.current;
     if (workspace) {
       try {
-        // Get all the blocks in the workspace
         const blocks = workspace.getAllBlocks();
-        
-        // Generate code for each block
-        let code = '';
-        
-        // First, generate game setup code
-        const setupBlocks = blocks.filter(block => 
-          ['rounds_set', 'timer_length', 'choose_button', 'choose_sensor', 'set_sensor_threshold'].includes(block.type)
+
+        let code = "";
+
+        const setupBlocks = blocks.filter((block) =>
+          [
+            "rounds_set",
+            "timer_length",
+            "choose_button",
+            "choose_sensor",
+            "set_sensor_threshold",
+          ].includes(block.type)
         );
-        setupBlocks.forEach(block => {
+        setupBlocks.forEach((block) => {
           code += javascriptGenerator.blockToCode(block);
         });
-        
-        // Then, generate sensor event handlers
-        const eventBlocks = blocks.filter(block => 
-          ['sensor_event', 'on_game_start'].includes(block.type)
+
+        const eventBlocks = blocks.filter((block) =>
+          ["sensor_event", "on_game_start"].includes(block.type)
         );
-        eventBlocks.forEach(block => {
+        eventBlocks.forEach((block) => {
           code += javascriptGenerator.blockToCode(block);
         });
-        
-        // Finally, generate remaining blocks
-        const otherBlocks = blocks.filter(block => 
-          !setupBlocks.includes(block) && !eventBlocks.includes(block)
+
+        const otherBlocks = blocks.filter(
+          (block) =>
+            !setupBlocks.includes(block) && !eventBlocks.includes(block)
         );
-        otherBlocks.forEach(block => {
+        otherBlocks.forEach((block) => {
           code += javascriptGenerator.blockToCode(block);
         });
 
@@ -609,7 +645,7 @@ export default function BlocklyEditor() {
         return code;
       } catch (error) {
         console.error("Error generating code:", error);
-        return '';
+        return "";
       }
     } else {
       console.error("No Blockly workspace");
@@ -625,14 +661,13 @@ export default function BlocklyEditor() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ code }), // Send the JavaScript code for compilation
+        body: JSON.stringify({ code }),
       });
 
       const data = await response.json();
       console.log(data);
       if (data.hex) {
         console.log("Hex file generated:", data.hex);
-        // Handle the downloaded .hex file (e.g., trigger a download, etc.)
       } else {
         console.error("Compilation error:", data.error);
       }
@@ -679,18 +714,15 @@ export default function BlocklyEditor() {
     const workspace = workspaceRef.current;
 
     if (workspace) {
-      const roundsBlock = workspace
-        .getAllBlocks()
-        .find((b) => b.type === "rounds_set");
-      const timerBlock = workspace
-        .getAllBlocks()
-        .find((b) => b.type === "timer_length");
-      const buttonBlock = workspace
-        .getAllBlocks()
-        .find((b) => b.type === "choose_button");
-      const sensorBlock = workspace
-        .getAllBlocks()
-        .find((b) => b.type === "choose_sensor");
+      const blocks = workspace.getAllBlocks();
+
+      const roundsBlock = blocks.find((b) => b.type === "rounds_set");
+      const timerBlock = blocks.find((b) => b.type === "timer_length");
+      const buttonBlock = blocks.find((b) => b.type === "choose_button");
+      const sensorThresholdBlocks = blocks.filter(
+        (b) => b.type === "set_sensor_threshold"
+      );
+      const scoreBlocks = blocks.filter((b) => b.type === "add_to_score");
 
       const roundsValue = roundsBlock
         ? parseInt(roundsBlock.getFieldValue("ROUNDS"), 10) || 5
@@ -698,14 +730,7 @@ export default function BlocklyEditor() {
       setRounds(roundsValue);
 
       const timerValue = timerBlock
-        ? parseInt(
-            javascriptGenerator.valueToCode(
-              timerBlock,
-              "TIME",
-              javascriptGenerator.ORDER_ATOMIC
-            ),
-            10
-          ) || 5
+        ? parseInt(timerBlock.getFieldValue("TIME"), 10) || 5
         : 5;
       setTimerLength(timerValue);
 
@@ -714,8 +739,39 @@ export default function BlocklyEditor() {
         : "A";
       setButton(buttonValue);
 
+      const thresholds = {
+        accelerometer: 2000,
+        lightSensor: 200,
+        temperature: 25,
+        magnetometer: 200000,
+      };
+
+      sensorThresholdBlocks.forEach((block) => {
+        const sensor = block.getFieldValue("SENSOR");
+        const threshold = parseInt(block.getFieldValue("THRESHOLD"), 10);
+        if (sensor && !isNaN(threshold)) {
+          thresholds[sensor] = threshold;
+        }
+      });
+      setSensorThresholds(thresholds);
+
+      let increment = 1;
+      if (scoreBlocks.length > 0) {
+        const points = javascriptGenerator.valueToCode(
+          scoreBlocks[0],
+          "POINTS",
+          javascriptGenerator.ORDER_ATOMIC
+        );
+        if (points && !isNaN(parseInt(points))) {
+          increment = parseInt(points);
+        }
+      }
+      setScoreIncrement(increment);
+
       const code = convertToJavaScript();
-      setCode(code);
+      if (code) {
+        setCode(code);
+      }
 
       let info = "";
       if (roundsBlock) {
@@ -725,10 +781,16 @@ export default function BlocklyEditor() {
         info += `Timer length set to ${timerValue}.\n`;
       }
       if (buttonBlock) {
-        info += `Button selected: ${buttonValue}.\n`;
+        info += `Button selected: ${buttonValue}\n`;
       }
-      if (sensorBlock) {
-        info += `Sensor selected: ${sensorBlock.getFieldValue("SENSOR")}.\n`;
+      if (sensorThresholdBlocks.length > 0) {
+        info += "Sensor thresholds set:\n";
+        Object.entries(thresholds).forEach(([sensor, value]) => {
+          info += `- ${sensor}: ${value}\n`;
+        });
+      }
+      if (scoreBlocks.length > 0) {
+        info += `Score increment set to ${increment}\n`;
       }
       setSavedInformation(info);
     } else {
@@ -785,10 +847,9 @@ export default function BlocklyEditor() {
 var item;
 
 const handler = (event) => {
-  // Check if the event matches the selected sensor type
   if (gameType === "accelerometer") {
     const data = event.target.value;
-    // Add your sensor-specific logic here (e.g., processing accelerometer data)
+
     console.log("accelerometer data received:", data);
   } else {
     console.error(
